@@ -1,0 +1,134 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+@layer base {
+  :root {
+    --bg-main: #0F172A;
+    --bg-card: #1E293B;
+    --border-color: #334155;
+    --text-primary: #F8FAFC;
+    --accent-cyan: #06B6D4;
+    --accent-green: #22C55E;
+    --accent-yellow: #F59E0B;
+  }
+
+  body {
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    font-family: 'Inter', 'Lexend', system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+  }
+
+  /* High Contrast Neon Mode Override */
+  .high-contrast-neon {
+    --bg-main: #000000;
+    --bg-card: #090D16;
+    --border-color: #06B6D4;
+    --text-primary: #FFFFFF;
+    --accent-cyan: #00FFFF;
+    --accent-green: #00FF66;
+    --accent-yellow: #FFFF00;
+    background-color: #000000 !important;
+    color: #FFFFFF !important;
+  }
+
+  /* Font Scaling Classes */
+  .font-size-large {
+    font-size: 1.125rem;
+  }
+  .font-size-xlarge {
+    font-size: 1.25rem;
+  }
+  .font-size-large h1 { font-size: 2.5rem !important; }
+  .font-size-xlarge h1 { font-size: 2.75rem !important; }
+  .font-size-large h2 { font-size: 2rem !important; }
+  .font-size-xlarge h2 { font-size: 2.25rem !important; }
+  .font-size-large h3 { font-size: 1.5rem !important; }
+  .font-size-xlarge h3 { font-size: 1.75rem !important; }
+  .font-size-large button, .font-size-xlarge button { min-height: 52px; font-size: 1.1rem; }
+
+  /* Reduced Motion */
+  .reduced-motion *,
+  .reduced-motion *::before,
+  .reduced-motion *::after {
+    animation-duration: 0.001s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001s !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Keyframe Animations & Utilities */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-slideUp {
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Custom Glassmorphism */
+.glass-panel {
+  background: rgba(30, 41, 59, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.high-contrast-neon .glass-panel {
+  background: rgba(9, 13, 22, 0.95);
+  border: 2px solid #06B6D4;
+  box-shadow: 0 0 15px rgba(6, 182, 212, 0.25);
+}
+
+/* Flash Screen Overlay Animation */
+@keyframes screenFlashCyan {
+  0% { opacity: 0; }
+  25% { opacity: 0.85; background-color: #06B6D4; }
+  50% { opacity: 0.1; }
+  75% { opacity: 0.9; background-color: #06B6D4; }
+  100% { opacity: 0; }
+}
+
+@keyframes screenFlashGold {
+  0% { opacity: 0; }
+  25% { opacity: 0.85; background-color: #F59E0B; }
+  50% { opacity: 0.1; }
+  75% { opacity: 0.9; background-color: #F59E0B; }
+  100% { opacity: 0; }
+}
+
+.animate-screen-flash-cyan {
+  animation: screenFlashCyan 1.2s ease-in-out;
+}
+
+.animate-screen-flash-gold {
+  animation: screenFlashGold 1.2s ease-in-out;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0F172A;
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #06B6D4;
+}
