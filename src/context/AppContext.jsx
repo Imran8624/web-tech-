@@ -221,6 +221,7 @@ export const AppProvider = ({ children }) => {
 
   const [isTranslating, setIsTranslating] = useState(false);
   const [signSpeed, setSignSpeed] = useState(1);
+  const [avatarMode, setAvatarMode] = useState(() => loadStorage('signshift_avatar_mode', 'human'));
 
   // Save to LocalStorage on updates
   useEffect(() => { saveStorage('signshift_users', usersList); }, [usersList]);
@@ -229,6 +230,7 @@ export const AppProvider = ({ children }) => {
   useEffect(() => { saveStorage('signshift_addresses', savedAddresses); }, [savedAddresses]);
   useEffect(() => { saveStorage('signshift_restaurants', restaurantsList); }, [restaurantsList]);
   useEffect(() => { saveStorage('signshift_order', order); }, [order]);
+  useEffect(() => { saveStorage('signshift_avatar_mode', avatarMode); }, [avatarMode]);
 
   // Visual & Haptic Alert Helper
   const triggerVisualAlert = useCallback((type = 'cyan') => {
@@ -660,6 +662,8 @@ export const AppProvider = ({ children }) => {
       sendRiderResponse,
       signSpeed,
       setSignSpeed,
+      avatarMode,
+      setAvatarMode,
       speakText
     }}>
       <div className={`min-h-screen ${theme === 'neon' ? 'high-contrast-neon' : ''} ${fontSize === 'large' ? 'font-size-large' : fontSize === 'xlarge' ? 'font-size-xlarge' : ''} ${reducedMotion ? 'reduced-motion' : ''}`}>

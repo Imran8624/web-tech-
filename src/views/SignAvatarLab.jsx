@@ -12,11 +12,13 @@ import {
   Play, 
   Check, 
   RotateCcw,
-  Zap
+  Zap,
+  User,
+  UserCheck
 } from 'lucide-react';
 
 export const SignAvatarLab = () => {
-  const { signSpeed, setSignSpeed, speakText, triggerVisualAlert } = useApp();
+  const { signSpeed, setSignSpeed, speakText, triggerVisualAlert, avatarMode, setAvatarMode } = useApp();
   const [activeSignKey, setActiveSignKey] = useState("HELLO");
   const [customText, setCustomText] = useState("Please leave food at door, gate code 4022.");
   const [selectedLang, setSelectedLang] = useState(SUPPORTED_LANGUAGES[0]);
@@ -54,6 +56,8 @@ export const SignAvatarLab = () => {
     }, 800);
   };
 
+  const currentMode = avatarMode || 'human';
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-6 space-y-8 pb-24">
       
@@ -65,17 +69,21 @@ export const SignAvatarLab = () => {
           </div>
           <div>
             <h2 className="text-2xl font-extrabold text-white flex items-center gap-2">
-              3D Sign Avatar & Multi-Language Studio
+              3D Human Sign Avatar Studio
               <Sparkles className="w-5 h-5 text-cyan-400" />
             </h2>
-            <p className="text-xs text-slate-400">Universal Speech & Text ➔ ASL/ISL 3D Sign Language Engine</p>
+            <p className="text-xs text-slate-400">Universal Speech & Text ➔ Real-Time 3D Human ASL Interpreter</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <div className="px-3.5 py-1.5 bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 text-xs font-extrabold rounded-xl flex items-center gap-1.5 shadow-lg">
+            <UserCheck className="w-4 h-4 text-cyan-400" /> 3D Human Mode Active
+          </div>
+
           <button
             onClick={() => setSignSpeed(signSpeed === 1 ? 1.5 : signSpeed === 1.5 ? 0.5 : 1)}
-            className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-slate-700 text-xs font-bold rounded-xl flex items-center gap-1"
+            className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-slate-700 text-xs font-bold rounded-xl flex items-center gap-1 shadow-lg"
           >
             <FastForward className="w-4 h-4" /> Speed: {signSpeed}x
           </button>
