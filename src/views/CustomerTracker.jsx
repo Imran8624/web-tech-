@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { LiveGpsTrackerMap } from '../components/LiveGpsTrackerMap';
 import { SUPPORTED_LANGUAGES } from '../constants/languages';
 import { 
   Package, 
@@ -335,6 +336,20 @@ export const CustomerTracker = ({ onOpenVoiceAgent }) => {
             <span className="text-xs text-slate-400 font-mono">ETA: <strong className="text-emerald-400 text-sm">{order.deliveryEta}</strong></span>
           </div>
         </div>
+      </div>
+
+      {/* REAL GPS LIVE TRACKER MAP */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between px-1">
+          <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+            <Navigation className="w-3.5 h-3.5 text-cyan-400" />
+            Live Real GPS Navigation & Route Track
+          </span>
+          <span className="text-[11px] font-mono text-cyan-400 bg-cyan-950/80 px-2 py-0.5 rounded-full border border-cyan-800">
+            📡 Live Telemetry Feed
+          </span>
+        </div>
+        <LiveGpsTrackerMap isRiderView={false} />
       </div>
 
       {/* TRACKING PROGRESS */}

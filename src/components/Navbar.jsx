@@ -17,11 +17,13 @@ import {
   Lock,
   ShieldCheck,
   LogOut,
-  User
+  User,
+  Bell
 } from 'lucide-react';
 
-export const Navbar = ({ onOpenAccessibility, onOpenVoiceAgent }) => {
-  const { currentView, setCurrentView, theme, setTheme } = useApp();
+export const Navbar = ({ onOpenAccessibility, onOpenVoiceAgent, onOpenNotifications }) => {
+  const { currentView, setCurrentView, theme, setTheme, notificationsList = [] } = useApp();
+  const unreadCount = notificationsList.filter(n => !n.isRead).length;
 
   return (
     <header className="sticky top-0 z-40 w-full glass-panel border-b border-slate-800 bg-slate-950/80 backdrop-blur-xl">
@@ -157,6 +159,20 @@ export const Navbar = ({ onOpenAccessibility, onOpenVoiceAgent }) => {
           >
             <Zap className="w-4 h-4 text-amber-300" />
             <span className="hidden xl:inline">Neon</span>
+          </button>
+
+          {/* Real-Time Notifications Bell Button */}
+          <button
+            onClick={onOpenNotifications}
+            className="relative p-2 bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-slate-700 hover:border-cyan-500 rounded-xl transition flex items-center justify-center focus:ring-2 focus:ring-cyan-400"
+            title="Open Real-Time Notification Center (Rider, Merchant, Customer)"
+          >
+            <Bell className="w-4 h-4 text-cyan-400" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white font-extrabold text-[9px] flex items-center justify-center font-mono shadow-md animate-pulse">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
           </button>
 
           {/* Accessibility Settings Trigger */}

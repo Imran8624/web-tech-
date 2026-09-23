@@ -11,10 +11,13 @@ import { SignAvatarLab } from './views/SignAvatarLab';
 import { AuthLoginView } from './views/AuthLoginView';
 import { AdminDashboard } from './views/AdminDashboard';
 
+import { NotificationCenter, NotificationToast } from './components/NotificationCenter';
+
 const MainLayout = () => {
   const { currentView } = useApp();
   const [isAccessibilityOpen, setIsAccessibilityOpen] = useState(false);
   const [isVoiceAgentOpen, setIsVoiceAgentOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-navy text-slate-100 font-sans selection:bg-brand-cyan selection:text-slate-950">
@@ -23,7 +26,11 @@ const MainLayout = () => {
       <Navbar 
         onOpenAccessibility={() => setIsAccessibilityOpen(true)} 
         onOpenVoiceAgent={() => setIsVoiceAgentOpen(true)}
+        onOpenNotifications={() => setIsNotificationsOpen(true)}
       />
+
+      {/* Floating Push Notification Toast */}
+      <NotificationToast />
 
       {/* Main View Router */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
@@ -35,6 +42,12 @@ const MainLayout = () => {
         {currentView === 'login' && <AuthLoginView />}
         {currentView === 'admin' && <AdminDashboard />}
       </main>
+
+      {/* Real-Time Notification Center Modal */}
+      <NotificationCenter
+        isOpen={isNotificationsOpen}
+        onClose={() => setIsNotificationsOpen(false)}
+      />
 
       {/* Global Accessibility Settings Toolbar */}
       <AccessibilityToolbar 
