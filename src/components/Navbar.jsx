@@ -18,7 +18,8 @@ import {
   ShieldCheck,
   LogOut,
   User,
-  Bell
+  Bell,
+  Palette
 } from 'lucide-react';
 
 export const Navbar = ({ onOpenAccessibility, onOpenVoiceAgent, onOpenNotifications }) => {
@@ -147,18 +148,20 @@ export const Navbar = ({ onOpenAccessibility, onOpenVoiceAgent, onOpenNotificati
             <span className="hidden sm:inline">AI Voice Agent</span>
           </button>
 
-          {/* Neon Contrast Toggle */}
+          {/* Theme & Sector Color Studio Trigger */}
           <button
-            onClick={() => setTheme(theme === 'neon' ? 'dark' : 'neon')}
-            className={`p-2 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 ${
+            onClick={onOpenAccessibility}
+            className={`px-2.5 py-2 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 ${
               theme === 'neon'
                 ? 'bg-cyan-400 text-slate-950 border-cyan-300 shadow-lg shadow-cyan-400/30'
                 : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-cyan-500'
             }`}
-            title="Toggle High-Contrast Neon Mode (WCAG 2.1 AA)"
+            title="Open Accessibility Themes & Sector Color Studio"
           >
-            <Zap className="w-4 h-4 text-amber-300" />
-            <span className="hidden xl:inline">Neon</span>
+            <Palette className="w-4 h-4 text-cyan-400" />
+            <span className="hidden xl:inline capitalize text-[11px] font-extrabold text-cyan-300">
+              {theme.replace('-', ' ')}
+            </span>
           </button>
 
           {/* Real-Time Notifications Bell Button */}

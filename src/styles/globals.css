@@ -11,17 +11,27 @@
     --accent-cyan: #06B6D4;
     --accent-green: #22C55E;
     --accent-yellow: #F59E0B;
+
+    /* Dynamic Sector Color Tokens */
+    --sector-rider: #06B6D4;
+    --sector-customer: #10B981;
+    --sector-merchant: #F59E0B;
+    --sector-avatar: #06B6D4;
+    --sector-accent: #06B6D4;
+    --sector-card: #1E293B;
+    --sector-bg: #0F172A;
   }
 
   body {
-    background-color: var(--bg-main);
+    background-color: var(--sector-bg, var(--bg-main));
     color: var(--text-primary);
     font-family: 'Inter', 'Lexend', system-ui, -apple-system, sans-serif;
     overflow-x: hidden;
   }
 
-  /* High Contrast Neon Mode Override */
-  .high-contrast-neon {
+  /* 1. High Contrast Neon Mode (WCAG 2.1 AAA Outdoor Sunlight) */
+  .high-contrast-neon,
+  .theme-neon {
     --bg-main: #000000;
     --bg-card: #090D16;
     --border-color: #06B6D4;
@@ -33,20 +43,185 @@
     color: #FFFFFF !important;
   }
 
-  /* Font Scaling Classes */
+  /* 2. Solar Clean High-Vis Light Mode (Direct Sunlight Outdoor Visibility) */
+  .theme-solar-light {
+    --bg-main: #F8FAFC;
+    --bg-card: #FFFFFF;
+    --border-color: #CBD5E1;
+    --text-primary: #0F172A;
+    --accent-cyan: #0284C7;
+    --accent-green: #059669;
+    --accent-yellow: #D97706;
+    background-color: #F8FAFC !important;
+    color: #0F172A !important;
+  }
+
+  .theme-solar-light .glass-panel {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border-color: #CBD5E1 !important;
+    color: #0F172A !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
+  }
+
+  .theme-solar-light .text-slate-400,
+  .theme-solar-light .text-slate-300 {
+    color: #475569 !important;
+  }
+
+  .theme-solar-light .text-white {
+    color: #0F172A !important;
+  }
+
+  .theme-solar-light .bg-slate-900,
+  .theme-solar-light .bg-slate-950 {
+    background-color: #F1F5F9 !important;
+    color: #0F172A !important;
+    border-color: #CBD5E1 !important;
+  }
+
+  /* 3. Tritanopia Shield (Blue-Yellow Colorblind Accessibility) */
+  .theme-tritanopia {
+    --bg-main: #0C101B;
+    --bg-card: #181F33;
+    --border-color: #7C3AED;
+    --text-primary: #FDFEFE;
+    --accent-cyan: #8B5CF6;
+    --accent-green: #F59E0B;
+    --accent-yellow: #EC4899;
+    background-color: #0C101B !important;
+  }
+
+  .theme-tritanopia .glass-panel {
+    border-color: #7C3AED !important;
+    box-shadow: 0 0 16px rgba(124, 58, 237, 0.25) !important;
+  }
+
+  /* 4. Protanopia / Deuteranopia Shield (Red-Green Colorblind Accessibility) */
+  .theme-protanopia {
+    --bg-main: #0A0F1D;
+    --bg-card: #131E38;
+    --border-color: #2563EB;
+    --text-primary: #FFFFFF;
+    --accent-cyan: #3B82F6;
+    --accent-green: #FBBF24;
+    --accent-yellow: #38BDF8;
+    background-color: #0A0F1D !important;
+  }
+
+  .theme-protanopia .glass-panel {
+    border-color: #2563EB !important;
+    box-shadow: 0 0 16px rgba(37, 99, 235, 0.25) !important;
+  }
+
+  /* 5. OLED Pure Midnight (Zero-Backlight Pitch Black for AMOLED Batteries) */
+  .theme-oled-midnight {
+    --bg-main: #000000;
+    --bg-card: #050811;
+    --border-color: #1E293B;
+    --text-primary: #F8FAFC;
+    --accent-cyan: #38BDF8;
+    --accent-green: #4ADE80;
+    --accent-yellow: #FDE047;
+    background-color: #000000 !important;
+    color: #F8FAFC !important;
+  }
+
+  .theme-oled-midnight .glass-panel {
+    background: #050811 !important;
+    border: 1px solid #1E293B !important;
+  }
+
+  /* 6. Circadian Amber Night Shift (Low-Blue Light for Night Rider Shifts) */
+  .theme-amber-night {
+    --bg-main: #140E08;
+    --bg-card: #23190E;
+    --border-color: #B45309;
+    --text-primary: #FEF3C7;
+    --accent-cyan: #F59E0B;
+    --accent-green: #D97706;
+    --accent-yellow: #FDE68A;
+    background-color: #140E08 !important;
+    color: #FEF3C7 !important;
+  }
+
+  .theme-amber-night .glass-panel {
+    background: rgba(35, 25, 14, 0.92) !important;
+    border-color: #B45309 !important;
+  }
+
+  /* Complete Font Scaling System (WCAG 1.4.4 Resize Text up to 200%) */
+  .font-size-compact {
+    --font-scale: 0.85;
+    font-size: 0.875rem !important;
+  }
+  .font-size-normal {
+    --font-scale: 1;
+    font-size: 1rem;
+  }
   .font-size-large {
-    font-size: 1.125rem;
+    --font-scale: 1.15;
+    font-size: 1.125rem !important;
   }
   .font-size-xlarge {
-    font-size: 1.25rem;
+    --font-scale: 1.30;
+    font-size: 1.25rem !important;
   }
+  .font-size-huge {
+    --font-scale: 1.50;
+    font-size: 1.45rem !important;
+  }
+  .font-size-ultra {
+    --font-scale: 1.80;
+    font-size: 1.75rem !important;
+  }
+
+  /* Comprehensive Headings & Element Rescaling */
+  .font-size-compact h1 { font-size: 1.85rem !important; }
+  .font-size-compact h2 { font-size: 1.5rem !important; }
+  .font-size-compact h3 { font-size: 1.25rem !important; }
+  .font-size-compact p, .font-size-compact span, .font-size-compact label { font-size: 0.85rem; }
+
   .font-size-large h1 { font-size: 2.5rem !important; }
-  .font-size-xlarge h1 { font-size: 2.75rem !important; }
   .font-size-large h2 { font-size: 2rem !important; }
-  .font-size-xlarge h2 { font-size: 2.25rem !important; }
   .font-size-large h3 { font-size: 1.5rem !important; }
+  .font-size-large p, .font-size-large span, .font-size-large label { font-size: 1.05rem; }
+  .font-size-large button { min-height: 48px; font-size: 1.05rem; }
+
+  .font-size-xlarge h1 { font-size: 2.85rem !important; }
+  .font-size-xlarge h2 { font-size: 2.3rem !important; }
   .font-size-xlarge h3 { font-size: 1.75rem !important; }
-  .font-size-large button, .font-size-xlarge button { min-height: 52px; font-size: 1.1rem; }
+  .font-size-xlarge p, .font-size-xlarge span, .font-size-xlarge label { font-size: 1.15rem; }
+  .font-size-xlarge button { min-height: 52px; font-size: 1.15rem; }
+
+  .font-size-huge h1 { font-size: 3.2rem !important; }
+  .font-size-huge h2 { font-size: 2.6rem !important; }
+  .font-size-huge h3 { font-size: 2.0rem !important; }
+  .font-size-huge p, .font-size-huge span, .font-size-huge label { font-size: 1.3rem !important; line-height: 1.6; }
+  .font-size-huge button { min-height: 58px; font-size: 1.25rem !important; }
+
+  .font-size-ultra h1 { font-size: 3.6rem !important; line-height: 1.2; }
+  .font-size-ultra h2 { font-size: 3.0rem !important; line-height: 1.25; }
+  .font-size-ultra h3 { font-size: 2.3rem !important; }
+  .font-size-ultra p, .font-size-ultra span, .font-size-ultra label { font-size: 1.45rem !important; line-height: 1.65; }
+  .font-size-ultra button { min-height: 64px; font-size: 1.4rem !important; padding-left: 1.5rem; padding-right: 1.5rem; }
+
+  /* Dyslexia-Friendly & High Legibility Font Enhancements */
+  .font-family-lexend {
+    font-family: 'Lexend', system-ui, sans-serif !important;
+  }
+  .font-family-dyslexic {
+    font-family: 'Lexend', 'Comic Sans MS', cursive, sans-serif !important;
+    letter-spacing: 0.04em !important;
+    word-spacing: 0.08em !important;
+  }
+  .enhanced-line-height p,
+  .enhanced-line-height span,
+  .enhanced-line-height div {
+    line-height: 1.85 !important;
+  }
+  .high-text-weight {
+    font-weight: 600 !important;
+  }
 
   /* Reduced Motion */
   .reduced-motion *,
@@ -95,17 +270,17 @@
 /* Flash Screen Overlay Animation */
 @keyframes screenFlashCyan {
   0% { opacity: 0; }
-  25% { opacity: 0.85; background-color: #06B6D4; }
+  25% { opacity: 0.85; background-color: var(--sector-rider, #06B6D4); }
   50% { opacity: 0.1; }
-  75% { opacity: 0.9; background-color: #06B6D4; }
+  75% { opacity: 0.9; background-color: var(--sector-rider, #06B6D4); }
   100% { opacity: 0; }
 }
 
 @keyframes screenFlashGold {
   0% { opacity: 0; }
-  25% { opacity: 0.85; background-color: #F59E0B; }
+  25% { opacity: 0.85; background-color: var(--sector-merchant, #F59E0B); }
   50% { opacity: 0.1; }
-  75% { opacity: 0.9; background-color: #F59E0B; }
+  75% { opacity: 0.9; background-color: var(--sector-merchant, #F59E0B); }
   100% { opacity: 0; }
 }
 
@@ -117,18 +292,43 @@
   animation: screenFlashGold 1.2s ease-in-out;
 }
 
+/* Dynamic Sector Accent Helpers */
+.badge-rider {
+  background-color: color-mix(in srgb, var(--sector-rider) 20%, transparent);
+  color: var(--sector-rider);
+  border-color: color-mix(in srgb, var(--sector-rider) 40%, transparent);
+}
+
+.badge-customer {
+  background-color: color-mix(in srgb, var(--sector-customer) 20%, transparent);
+  color: var(--sector-customer);
+  border-color: color-mix(in srgb, var(--sector-customer) 40%, transparent);
+}
+
+.badge-merchant {
+  background-color: color-mix(in srgb, var(--sector-merchant) 20%, transparent);
+  color: var(--sector-merchant);
+  border-color: color-mix(in srgb, var(--sector-merchant) 40%, transparent);
+}
+
+.badge-avatar {
+  background-color: color-mix(in srgb, var(--sector-avatar) 20%, transparent);
+  color: var(--sector-avatar);
+  border-color: color-mix(in srgb, var(--sector-avatar) 40%, transparent);
+}
+
 /* Custom scrollbars */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #0F172A;
+  background: var(--sector-bg, #0F172A);
 }
 ::-webkit-scrollbar-thumb {
   background: #334155;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #06B6D4;
+  background: var(--sector-accent, #06B6D4);
 }

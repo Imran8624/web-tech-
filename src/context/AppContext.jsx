@@ -410,16 +410,165 @@ const saveStorage = (key, value) => {
   }
 };
 
+export const DEFAULT_SECTOR_COLORS = {
+  rider: '#06B6D4',      // Rider / Courier Sector (Cyan)
+  customer: '#10B981',   // Customer Portal Sector (Emerald)
+  merchant: '#F59E0B',   // Merchant / Kitchen Sector (Amber)
+  avatar: '#06B6D4',     // 3D Human Sign Avatar Sector (Cyan)
+  accent: '#06B6D4',     // Primary Accent & UI Glow
+  card: '#1E293B',       // Card Panel Surface
+  bg: '#0F172A'          // Canvas Background
+};
+
+export const ACCESSIBILITY_THEMES = [
+  { id: 'dark', name: 'Standard Dark', desc: 'Classic navy slate & cyan contrast', icon: 'Moon', badge: 'Default' },
+  { id: 'neon', name: 'High-Contrast Neon', desc: 'True black & fluorescent green/cyan for sunlight', icon: 'Zap', badge: 'WCAG AAA' },
+  { id: 'solar-light', name: 'Solar Clean Light', desc: 'Bright outdoor direct daylight readability', icon: 'Sun', badge: 'Day Mode' },
+  { id: 'tritanopia', name: 'Tritanopia Shield', desc: 'Optimized for blue-yellow vision difference', icon: 'Eye', badge: 'Colorblind Assist' },
+  { id: 'protanopia', name: 'Protanopia / Deutan', desc: 'Optimized for red-green vision difference', icon: 'ShieldCheck', badge: 'Colorblind Assist' },
+  { id: 'oled-midnight', name: 'OLED Pure Midnight', desc: 'True pitch black #000000, 0% AMOLED battery drain', icon: 'Smartphone', badge: 'Power Saver' },
+  { id: 'amber-night', name: 'Circadian Amber', desc: 'Low-blue warm sepia spectrum for night shifts', icon: 'Sparkles', badge: 'Night Shift' }
+];
+
+export const SECTOR_PALETTE_PRESETS = [
+  {
+    id: 'cyber',
+    name: 'Cyber SignShift (Default)',
+    colors: { rider: '#06B6D4', customer: '#10B981', merchant: '#F59E0B', avatar: '#06B6D4', accent: '#06B6D4', card: '#1E293B', bg: '#0F172A' }
+  },
+  {
+    id: 'emerald-eco',
+    name: 'Emerald Eco Pulse',
+    colors: { rider: '#10B981', customer: '#06B6D4', merchant: '#84CC16', avatar: '#10B981', accent: '#10B981', card: '#132822', bg: '#091612' }
+  },
+  {
+    id: 'sunset-amber',
+    name: 'Sunset Horizon',
+    colors: { rider: '#F97316', customer: '#EC4899', merchant: '#FBBF24', avatar: '#F97316', accent: '#F97316', card: '#2B1A24', bg: '#180E16' }
+  },
+  {
+    id: 'synthwave',
+    name: 'Synthwave Purple',
+    colors: { rider: '#A855F7', customer: '#EC4899', merchant: '#06B6D4', avatar: '#A855F7', accent: '#A855F7', card: '#221435', bg: '#11081C' }
+  },
+  {
+    id: 'cobalt',
+    name: 'Oceanic Cobalt',
+    colors: { rider: '#3B82F6', customer: '#06B6D4', merchant: '#6366F1', avatar: '#3B82F6', accent: '#3B82F6', card: '#14223A', bg: '#0A1224' }
+  },
+  {
+    id: 'monochrome',
+    name: 'High-Vis Laser',
+    colors: { rider: '#00FFFF', customer: '#00FF66', merchant: '#FFFF00', avatar: '#00FFFF', accent: '#00FFFF', card: '#090D16', bg: '#000000' }
+  }
+];
+
+export const FONT_SIZE_PRESETS = [
+  { id: 'compact', label: '85% Compact', scale: 85, desc: 'Compact view for data density', sample: 'Aa' },
+  { id: 'normal', label: '100% Normal', scale: 100, desc: 'Default standard typography', sample: 'Aa' },
+  { id: 'large', label: '115% Large', scale: 115, desc: 'Enhanced clarity & comfortable reading', sample: 'Aa' },
+  { id: 'xlarge', label: '130% Extra Large', scale: 130, desc: 'High visibility for outdoor & handheld use', sample: 'Aa' },
+  { id: 'huge', label: '150% Huge', scale: 150, desc: 'Low vision assistance & large touch targets', sample: 'Aa' },
+  { id: 'ultra', label: '180% Ultra Max', scale: 180, desc: 'Maximum WCAG accessibility scaling', sample: 'Aa' }
+];
+
 export const AppProvider = ({ children }) => {
   // Navigation & Theme
   const [currentView, setCurrentView] = useState('login');
-  const [theme, setTheme] = useState('dark');
-  const [fontSize, setFontSize] = useState('normal');
+  const [theme, setTheme] = useState(() => loadStorage('signshift_theme', 'dark'));
+  const [sectorColors, setSectorColors] = useState(() => loadStorage('signshift_sector_colors', DEFAULT_SECTOR_COLORS));
+  const [fontSize, setFontSizeState] = useState(() => loadStorage('signshift_font_size', 'normal'));
+  const [fontScale, setFontScale] = useState(() => loadStorage('signshift_font_scale', 100));
+  const [fontFamily, setFontFamily] = useState(() => loadStorage('signshift_font_family', 'standard'));
+  const [enhancedLineHeight, setEnhancedLineHeight] = useState(() => loadStorage('signshift_enhanced_line_height', false));
+  const [highTextWeight, setHighTextWeight] = useState(() => loadStorage('signshift_high_text_weight', false));
   const [reducedMotion, setReducedMotion] = useState(false);
   const [soundAlerts, setSoundAlerts] = useState(true);
   const [hapticAlerts, setHapticAlerts] = useState(true);
   const [flashAlerts, setFlashAlerts] = useState(true);
   const [screenFlash, setScreenFlash] = useState(null);
+
+  const setFontSize = useCallback((sizeId) => {
+    setFontSizeState(sizeId);
+    const preset = FONT_SIZE_PRESETS.find(p => p.id === sizeId);
+    if (preset) {
+      setFontScale(preset.scale);
+      saveStorage('signshift_font_scale', preset.scale);
+    }
+    saveStorage('signshift_font_size', sizeId);
+  }, []);
+
+  const changeFontScale = useCallback((newScale) => {
+    const clamped = Math.min(200, Math.max(80, newScale));
+    setFontScale(clamped);
+    saveStorage('signshift_font_scale', clamped);
+    if (clamped <= 90) setFontSizeState('compact');
+    else if (clamped <= 107) setFontSizeState('normal');
+    else if (clamped <= 122) setFontSizeState('large');
+    else if (clamped <= 140) setFontSizeState('xlarge');
+    else if (clamped <= 165) setFontSizeState('huge');
+    else setFontSizeState('ultra');
+  }, []);
+
+  const stepFontScale = useCallback((delta) => {
+    changeFontScale(fontScale + delta);
+  }, [fontScale, changeFontScale]);
+
+  const resetTypography = useCallback(() => {
+    setFontSize('normal');
+    setFontFamily('standard');
+    setEnhancedLineHeight(false);
+    setHighTextWeight(false);
+  }, [setFontSize]);
+
+  useEffect(() => {
+    saveStorage('signshift_font_family', fontFamily);
+    saveStorage('signshift_enhanced_line_height', enhancedLineHeight);
+    saveStorage('signshift_high_text_weight', highTextWeight);
+    if (typeof document !== 'undefined') {
+      const root = document.documentElement;
+      root.style.setProperty('--font-scale', (fontScale / 100).toString());
+    }
+  }, [fontScale, fontFamily, enhancedLineHeight, highTextWeight]);
+
+  const updateSectorColor = useCallback((sectorKey, colorValue) => {
+    setSectorColors(prev => {
+      const next = { ...prev, [sectorKey]: colorValue };
+      saveStorage('signshift_sector_colors', next);
+      return next;
+    });
+  }, []);
+
+  const applySectorPreset = useCallback((presetId) => {
+    const preset = SECTOR_PALETTE_PRESETS.find(p => p.id === presetId);
+    if (preset) {
+      setSectorColors(preset.colors);
+      saveStorage('signshift_sector_colors', preset.colors);
+    }
+  }, []);
+
+  const resetSectorColors = useCallback(() => {
+    setSectorColors(DEFAULT_SECTOR_COLORS);
+    saveStorage('signshift_sector_colors', DEFAULT_SECTOR_COLORS);
+  }, []);
+
+  useEffect(() => {
+    saveStorage('signshift_theme', theme);
+  }, [theme]);
+
+  useEffect(() => {
+    saveStorage('signshift_sector_colors', sectorColors);
+    if (typeof document !== 'undefined') {
+      const root = document.documentElement;
+      root.style.setProperty('--sector-rider', sectorColors.rider || '#06B6D4');
+      root.style.setProperty('--sector-customer', sectorColors.customer || '#10B981');
+      root.style.setProperty('--sector-merchant', sectorColors.merchant || '#F59E0B');
+      root.style.setProperty('--sector-avatar', sectorColors.avatar || '#06B6D4');
+      root.style.setProperty('--sector-accent', sectorColors.accent || '#06B6D4');
+      root.style.setProperty('--sector-card', sectorColors.card || '#1E293B');
+      root.style.setProperty('--sector-bg', sectorColors.bg || '#0F172A');
+    }
+  }, [sectorColors]);
 
   // Persistent Databases
   const [usersList, setUsersList] = useState(() => loadStorage('signshift_users', DEFAULT_USERS));
@@ -1282,8 +1431,26 @@ export const AppProvider = ({ children }) => {
       setCurrentView,
       theme,
       setTheme,
+      sectorColors,
+      setSectorColors,
+      updateSectorColor,
+      applySectorPreset,
+      resetSectorColors,
+      ACCESSIBILITY_THEMES,
+      SECTOR_PALETTE_PRESETS,
       fontSize,
       setFontSize,
+      fontScale,
+      changeFontScale,
+      stepFontScale,
+      fontFamily,
+      setFontFamily,
+      enhancedLineHeight,
+      setEnhancedLineHeight,
+      highTextWeight,
+      setHighTextWeight,
+      resetTypography,
+      FONT_SIZE_PRESETS,
       reducedMotion,
       setReducedMotion,
       soundAlerts,
@@ -1359,7 +1526,19 @@ export const AppProvider = ({ children }) => {
       setAvatarMode,
       speakText
     }}>
-      <div className={`min-h-screen ${theme === 'neon' ? 'high-contrast-neon' : ''} ${fontSize === 'large' ? 'font-size-large' : fontSize === 'xlarge' ? 'font-size-xlarge' : ''} ${reducedMotion ? 'reduced-motion' : ''}`}>
+      <div className={`min-h-screen ${
+        theme === 'neon' ? 'high-contrast-neon theme-neon' :
+        theme === 'solar-light' ? 'theme-solar-light' :
+        theme === 'tritanopia' ? 'theme-tritanopia' :
+        theme === 'protanopia' ? 'theme-protanopia' :
+        theme === 'oled-midnight' ? 'theme-oled-midnight' :
+        theme === 'amber-night' ? 'theme-amber-night' : 'theme-dark'
+      } font-size-${fontSize} ${
+        fontFamily === 'lexend' ? 'font-family-lexend' :
+        fontFamily === 'dyslexic' ? 'font-family-dyslexic' : ''
+      } ${enhancedLineHeight ? 'enhanced-line-height' : ''} ${
+        highTextWeight ? 'high-text-weight' : ''
+      } ${reducedMotion ? 'reduced-motion' : ''}`}>
         {screenFlash && (
           <div
             className={`fixed inset-0 z-50 pointer-events-none ${screenFlash === 'cyan' ? 'animate-screen-flash-cyan bg-brand-cyan/40' : 'animate-screen-flash-gold bg-brand-yellow/40'
