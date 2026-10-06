@@ -20,7 +20,8 @@ import {
   User,
   LogOut,
   MapPin,
-  Edit3
+  Edit3,
+  Globe
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -32,7 +33,11 @@ export const AuthLoginView = () => {
     registerUser, 
     logoutUser,
     usersList, 
-    setCurrentView 
+    setCurrentView,
+    language = 'en',
+    setLanguage,
+    t = (k) => k,
+    SUPPORTED_LANGUAGES = []
   } = useApp();
 
   const [authMode, setAuthMode] = useState('signin'); // 'signin' | 'register'
@@ -144,8 +149,25 @@ export const AuthLoginView = () => {
             🤟
           </div>
         </div>
-        <h2 className="text-2xl font-black text-white tracking-tight">SignShift Delivery</h2>
-        <p className="text-xs text-slate-400 font-medium">Inclusive Credentials & Multi-Role Database Portal</p>
+        <h2 className="text-2xl font-black text-white tracking-tight">{t('app_title', 'SignShift Delivery')}</h2>
+        <p className="text-xs text-slate-400 font-medium">{t('auth_subtitle', 'Inclusive Credentials & Multi-Role Database Portal')}</p>
+
+        {/* Auth Language Switcher */}
+        <div className="inline-flex items-center bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1 mt-1 shadow-sm">
+          <Globe className="w-3.5 h-3.5 text-cyan-400 mr-1.5" />
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            className="bg-transparent text-xs font-bold text-slate-200 focus:outline-none cursor-pointer"
+            aria-label="Auth language select"
+          >
+            {SUPPORTED_LANGUAGES.map((l) => (
+              <option key={l.code} value={l.code} className="bg-slate-900 text-slate-100">
+                {l.flag} {l.nativeName || l.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* IF LOGGED IN: SHOW ACTIVE SESSION CARD */}
@@ -202,14 +224,14 @@ export const AuthLoginView = () => {
             className={`flex-1 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 ${authMode === 'signin' ? 'bg-cyan-500 text-slate-950 font-extrabold shadow-md' : 'text-slate-400 hover:text-white'}`}
           >
             <LogIn className="w-4 h-4" />
-            <span>Sign In</span>
+            <span>{t('auth_tab_login', 'Sign In')}</span>
           </button>
           <button
             onClick={() => { setAuthMode('register'); setErrorMessage(''); setSuccessMessage(''); }}
             className={`flex-1 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 ${authMode === 'register' ? 'bg-emerald-400 text-slate-950 font-extrabold shadow-md' : 'text-slate-400 hover:text-white'}`}
           >
             <UserPlus className="w-4 h-4" />
-            <span>Create Account</span>
+            <span>{t('auth_tab_register', 'Create Account')}</span>
           </button>
         </div>
 

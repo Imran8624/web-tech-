@@ -3,32 +3,35 @@ import { useApp } from '../context/AppContext';
 import { SignAvatar3D, SIGN_DICTIONARY } from '../components/SignAvatar3D';
 import { LiveGpsTrackerMap } from '../components/LiveGpsTrackerMap';
 import { SUPPORTED_LANGUAGES, RIDER_QUICK_SIGNS } from '../constants/languages';
-import { 
-  CheckCircle2, 
-  Navigation, 
-  MapPin, 
-  Phone, 
-  PhoneCall, 
-  MessageSquare, 
-  Zap, 
-  Activity, 
-  ChevronDown, 
-  Send, 
-  Volume2, 
-  Globe, 
-  Sparkles, 
-  ShieldAlert, 
-  ArrowRight, 
-  AlertTriangle, 
-  Clock, 
-  ThumbsUp, 
-  User, 
-  ShoppingBag, 
-  Mic, 
-  Maximize2, 
-  Edit3, 
-  Plus, 
+import { translateChatMessage } from '../constants/communicationTranslations';
+import { NearbyRidersTransferCard } from '../components/NearbyRidersTransferCard';
+import {
+  CheckCircle2,
+  Navigation,
+  MapPin,
+  Phone,
+  PhoneCall,
+  MessageSquare,
+  Zap,
+  Activity,
+  ChevronDown,
+  Send,
+  Volume2,
+  Globe,
+  Sparkles,
+  ShieldAlert,
+  ArrowRight,
+  AlertTriangle,
+  Clock,
+  ThumbsUp,
+  User,
+  ShoppingBag,
+  Mic,
+  Maximize2,
+  Edit3,
+  Plus,
   X,
+  ArrowRightLeft,
   Coins,
   DollarSign,
   Wallet,
@@ -94,16 +97,21 @@ const INITIAL_WALLET = {
 };
 
 export const RiderDashboard = ({ onOpenVoiceAgent }) => {
-  const { 
-    user, 
-    updateUserProfile, 
-    order, 
-    updateOrderStatus, 
-    sendRiderResponse, 
-    sendCustomerMessage, 
-    triggerVisualAlert, 
+  const {
+    user,
+    updateUserProfile,
+    order,
+    updateOrderStatus,
+    sendRiderResponse,
+    sendCustomerMessage,
+    triggerVisualAlert,
     isTranslating,
-    logActivity
+    logActivity,
+    language = 'en',
+    setLanguage,
+    t = (k) => k,
+    SUPPORTED_LANGUAGES = [],
+    openTransferModal
   } = useApp();
 
   // Active Main Tab: 'delivery' | 'earnings'
@@ -179,10 +187,10 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
   };
 
   // Calculate Average Earning of One Order
-  const costOfOneOrderUSD = 
-    wallet.basePayPerOrderUSD + 
-    wallet.distancePayUSD + 
-    wallet.avgTipUSD + 
+  const costOfOneOrderUSD =
+    wallet.basePayPerOrderUSD +
+    wallet.distancePayUSD +
+    wallet.avgTipUSD +
     (incentiveDeafBridge ? wallet.accessibilityBonusUSD : 0) +
     (incentiveSurge ? 3.50 : 0) +
     (incentiveWeather ? 4.00 : 0);
@@ -352,10 +360,10 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
 
     if (logActivity) {
       logActivity(
-        "SignCoins Redeemed to Cash", 
-        "AUTH", 
-        `Rider Alex Rivera converted ${coinsToRedeem} coins to $${cashValueUSD.toFixed(2)} USD`, 
-        "Alex Rivera (Rider)", 
+        "SignCoins Redeemed to Cash",
+        "AUTH",
+        `Rider Alex Rivera converted ${coinsToRedeem} coins to $${cashValueUSD.toFixed(2)} USD`,
+        "Alex Rivera (Rider)",
         "SUCCESS"
       );
     }
@@ -370,6 +378,7 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
   };
 
   const handleSimulateLanguageMsg = (lang) => {
+    setLanguage(lang.code);
     setSelectedLanguage(lang);
     sendCustomerMessage(`[${lang.name}] ${lang.sampleMsg}`);
     setActiveSignKey(lang.code === 'ja' ? 'THANK YOU' : 'LEAVE AT DOOR');
@@ -377,8 +386,9 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
 
   const handleRiderQuickTap = (signItem) => {
     setActiveSignKey(signItem.key || "HELLO");
-    const translatedMsg = signItem.translations ? (signItem.translations[selectedLanguage.code] || signItem.translations['en']) : signItem.label;
-    sendRiderResponse(translatedMsg, signItem.key || signItem.label);
+    const currentLangCode = language || 'en';
+    const translatedMsg = signItem.translations ? (signItem.translations[currentLangCode] || signItem.translations['en']) : signItem.label;
+    sendRiderResponse(translatedMsg, signItem.key || signItem.label, signItem.translations);
   };
 
   const handleAddCustomSign = (e) => {
@@ -431,10 +441,10 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
 
   return (
     <div className="max-w-4xl mx-auto px-2 sm:px-4 py-4 space-y-4 pb-24">
-      
+
       {/* TOP RIDER HEADER BAR WITH CREDENTIALS EDITOR */}
       <div className="glass-panel rounded-3xl p-5 border-2 border-cyan-500/40 flex flex-wrap items-center justify-between gap-4 bg-slate-900/90 shadow-xl">
-        
+
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 border border-cyan-400 flex items-center justify-center text-cyan-300 font-extrabold text-xl shadow-lg">
             🤟
@@ -447,13 +457,30 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
               </span>
             </div>
             <p className="text-xs text-slate-400 font-medium flex items-center gap-2">
-              <span>Vehicle: <strong className="text-slate-200">{user?.vehicle || 'Electric Bike'}</strong></span> • 
+              <span>Vehicle: <strong className="text-slate-200">{user?.vehicle || 'Electric Bike'}</strong></span> •
               <span className="text-cyan-400 font-semibold">Active Order #{order.id}</span>
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Quick Language Switcher for Rider */}
+          <div className="flex items-center bg-slate-950 border border-slate-800 rounded-xl px-2 py-1.5 shadow-sm">
+            <Globe className="w-3.5 h-3.5 text-cyan-400 mr-1.5" />
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              className="bg-transparent text-xs font-bold text-slate-200 focus:outline-none cursor-pointer"
+              aria-label="Rider language"
+            >
+              {SUPPORTED_LANGUAGES.map((l) => (
+                <option key={l.code} value={l.code} className="bg-slate-900 text-slate-100">
+                  {l.flag} {l.nativeName || l.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <button
             onClick={() => {
               setEditName(user?.name || 'Alex Rivera');
@@ -483,11 +510,10 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
       <div className="flex bg-slate-950 p-1.5 rounded-2xl border border-slate-800 text-xs font-bold gap-1 shadow-inner">
         <button
           onClick={() => setActiveRiderTab('delivery')}
-          className={`flex-1 py-2.5 rounded-xl transition flex items-center justify-center gap-2 ${
-            activeRiderTab === 'delivery'
-              ? 'bg-gradient-to-r from-cyan-500 to-emerald-400 text-slate-950 font-extrabold shadow-md'
-              : 'text-slate-400 hover:text-white hover:bg-slate-900'
-          }`}
+          className={`flex-1 py-2.5 rounded-xl transition flex items-center justify-center gap-2 ${activeRiderTab === 'delivery'
+            ? 'bg-gradient-to-r from-cyan-500 to-emerald-400 text-slate-950 font-extrabold shadow-md'
+            : 'text-slate-400 hover:text-white hover:bg-slate-900'
+            }`}
         >
           <Navigation className="w-4 h-4" />
           <span>Active Delivery & 3D Sign Assist</span>
@@ -495,11 +521,10 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
 
         <button
           onClick={() => setActiveRiderTab('earnings')}
-          className={`flex-1 py-2.5 rounded-xl transition flex items-center justify-center gap-2 ${
-            activeRiderTab === 'earnings'
-              ? 'bg-gradient-to-r from-cyan-500 to-emerald-400 text-slate-950 font-extrabold shadow-md'
-              : 'text-slate-400 hover:text-white hover:bg-slate-900'
-          }`}
+          className={`flex-1 py-2.5 rounded-xl transition flex items-center justify-center gap-2 ${activeRiderTab === 'earnings'
+            ? 'bg-gradient-to-r from-cyan-500 to-emerald-400 text-slate-950 font-extrabold shadow-md'
+            : 'text-slate-400 hover:text-white hover:bg-slate-900'
+            }`}
         >
           <Wallet className="w-4 h-4 text-amber-400" />
           <span>Earnings, Orders & SignCoins Wallet</span>
@@ -511,7 +536,7 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
          ========================================================================= */}
       {activeRiderTab === 'earnings' && (
         <div className="space-y-5 animate-fadeIn">
-          
+
           {/* CURRENCY CHANGER BAR */}
           <div className="glass-panel rounded-2xl p-4 border border-slate-800 bg-slate-900/90 flex flex-wrap items-center justify-between gap-3 shadow-lg">
             <div className="flex items-center gap-2">
@@ -526,11 +551,10 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
                   <button
                     key={currCode}
                     onClick={() => setSelectedCurrency(currCode)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold font-mono transition flex items-center gap-1 ${
-                      selectedCurrency === currCode
-                        ? 'bg-cyan-500 text-slate-950 font-extrabold shadow-md scale-105'
-                        : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
-                    }`}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold font-mono transition flex items-center gap-1 ${selectedCurrency === currCode
+                      ? 'bg-cyan-500 text-slate-950 font-extrabold shadow-md scale-105'
+                      : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                      }`}
                   >
                     <span>{curr.symbol}</span>
                     <span>{curr.code}</span>
@@ -542,7 +566,7 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
 
           {/* RIDER STATS HERO: WALLET BALANCE, DELIVERED ORDERS & PER-ORDER COST */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            
+
             {/* CARD 1: LIVE WALLET BALANCE */}
             <div className="glass-panel rounded-2xl p-4 border border-slate-800 bg-slate-900/90 space-y-1">
               <div className="flex justify-between items-center text-slate-400">
@@ -604,7 +628,7 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
 
           {/* TOTAL PAYMENTS BREAKDOWN (HOURS, DAYS, WEEKS, MONTHS, YEARS) */}
           <div className="glass-panel rounded-3xl p-5 border-2 border-slate-800 bg-slate-900/95 space-y-4 shadow-xl">
-            
+
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
               <div>
                 <h3 className="font-extrabold text-base text-white flex items-center gap-2">
@@ -626,11 +650,10 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
                   <button
                     key={t.id}
                     onClick={() => setPaymentTimeframe(t.id)}
-                    className={`px-3 py-1.5 rounded-lg transition ${
-                      paymentTimeframe === t.id
-                        ? 'bg-gradient-to-r from-cyan-500 to-emerald-400 text-slate-950 font-extrabold shadow'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
+                    className={`px-3 py-1.5 rounded-lg transition ${paymentTimeframe === t.id
+                      ? 'bg-gradient-to-r from-cyan-500 to-emerald-400 text-slate-950 font-extrabold shadow'
+                      : 'text-slate-400 hover:text-white'
+                      }`}
                   >
                     {t.label}
                   </button>
@@ -643,9 +666,9 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-slate-400 uppercase font-mono">
                   {paymentTimeframe === 'days' ? 'Select Days Span:' :
-                   paymentTimeframe === 'hours' ? 'Select Hours Span:' :
-                   paymentTimeframe === 'weeks' ? 'Select Weeks Span:' :
-                   paymentTimeframe === 'months' ? 'Select Months Span:' : 'Select Years Span:'}
+                    paymentTimeframe === 'hours' ? 'Select Hours Span:' :
+                      paymentTimeframe === 'weeks' ? 'Select Weeks Span:' :
+                        paymentTimeframe === 'months' ? 'Select Months Span:' : 'Select Years Span:'}
                 </span>
               </div>
 
@@ -667,11 +690,10 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
                         setSelectedDaysCount(d.count);
                         setDaysSubCheckMode('all');
                       }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold font-mono transition flex items-center gap-1 ${
-                        selectedDaysCount === d.count && daysSubCheckMode === 'all'
-                          ? 'bg-cyan-500 text-slate-950 font-extrabold shadow-md scale-105'
-                          : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
-                      }`}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold font-mono transition flex items-center gap-1 ${selectedDaysCount === d.count && daysSubCheckMode === 'all'
+                        ? 'bg-cyan-500 text-slate-950 font-extrabold shadow-md scale-105'
+                        : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                        }`}
                     >
                       <span>📅</span>
                       <span>{d.label}</span>
@@ -693,11 +715,10 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
                     <button
                       key={h.count}
                       onClick={() => setSelectedHoursCount(h.count)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold font-mono transition ${
-                        selectedHoursCount === h.count
-                          ? 'bg-cyan-500 text-slate-950 font-extrabold shadow-md scale-105'
-                          : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
-                      }`}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold font-mono transition ${selectedHoursCount === h.count
+                        ? 'bg-cyan-500 text-slate-950 font-extrabold shadow-md scale-105'
+                        : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                        }`}
                     >
                       {h.label}
                     </button>
@@ -716,11 +737,10 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
                     <button
                       key={w.count}
                       onClick={() => setSelectedWeeksCount(w.count)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold font-mono transition ${
-                        selectedWeeksCount === w.count
-                          ? 'bg-cyan-500 text-slate-950 font-extrabold shadow-md scale-105'
-                          : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
-                      }`}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold font-mono transition ${selectedWeeksCount === w.count
+                        ? 'bg-cyan-500 text-slate-950 font-extrabold shadow-md scale-105'
+                        : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                        }`}
                     >
                       {w.label}
                     </button>
@@ -740,11 +760,10 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
                     <button
                       key={m.count}
                       onClick={() => setSelectedMonthsCount(m.count)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold font-mono transition ${
-                        selectedMonthsCount === m.count
-                          ? 'bg-cyan-500 text-slate-950 font-extrabold shadow-md scale-105'
-                          : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
-                      }`}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold font-mono transition ${selectedMonthsCount === m.count
+                        ? 'bg-cyan-500 text-slate-950 font-extrabold shadow-md scale-105'
+                        : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                        }`}
                     >
                       {m.label}
                     </button>
@@ -762,11 +781,10 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
                     <button
                       key={y.count}
                       onClick={() => setSelectedYearsCount(y.count)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold font-mono transition ${
-                        selectedYearsCount === y.count
-                          ? 'bg-cyan-500 text-slate-950 font-extrabold shadow-md scale-105'
-                          : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
-                      }`}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold font-mono transition ${selectedYearsCount === y.count
+                        ? 'bg-cyan-500 text-slate-950 font-extrabold shadow-md scale-105'
+                        : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                        }`}
                     >
                       {y.label}
                     </button>
@@ -790,11 +808,10 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
                     <button
                       key={d.key}
                       onClick={() => setDaysSubCheckMode(d.key)}
-                      className={`px-2.5 py-1.5 rounded-xl text-xs font-bold font-mono transition flex items-center gap-1.5 ${
-                        daysSubCheckMode === d.key
-                          ? 'bg-cyan-500 text-slate-950 font-black shadow-lg scale-105 ring-2 ring-cyan-300'
-                          : 'bg-slate-900 text-slate-300 hover:text-white border border-slate-800'
-                      }`}
+                      className={`px-2.5 py-1.5 rounded-xl text-xs font-bold font-mono transition flex items-center gap-1.5 ${daysSubCheckMode === d.key
+                        ? 'bg-cyan-500 text-slate-950 font-black shadow-lg scale-105 ring-2 ring-cyan-300'
+                        : 'bg-slate-900 text-slate-300 hover:text-white border border-slate-800'
+                        }`}
                     >
                       <span>📅 {d.shortLabel}</span>
                       <span className="text-[10px] px-1 py-0.2 bg-black/30 rounded font-black">{d.orders} ord • {formatMoney(d.totalUSD)}</span>
@@ -803,11 +820,10 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
 
                   <button
                     onClick={() => setDaysSubCheckMode('all')}
-                    className={`px-2.5 py-1.5 rounded-xl text-xs font-bold font-mono transition flex items-center gap-1.5 ${
-                      daysSubCheckMode === 'all'
-                        ? 'bg-gradient-to-r from-cyan-400 to-emerald-400 text-slate-950 font-black shadow-lg scale-105 ring-2 ring-emerald-300'
-                        : 'bg-slate-900 text-slate-300 hover:text-white border border-slate-800'
-                    }`}
+                    className={`px-2.5 py-1.5 rounded-xl text-xs font-bold font-mono transition flex items-center gap-1.5 ${daysSubCheckMode === 'all'
+                      ? 'bg-gradient-to-r from-cyan-400 to-emerald-400 text-slate-950 font-black shadow-lg scale-105 ring-2 ring-emerald-300'
+                      : 'bg-slate-900 text-slate-300 hover:text-white border border-slate-800'
+                      }`}
                   >
                     <span>⚡ Check All ({selectedDaysCount} Days Combined)</span>
                   </button>
@@ -854,7 +870,7 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
               <div className="p-4 bg-slate-950 rounded-2xl border-2 border-cyan-500/40 space-y-3 animate-fadeIn">
                 <div className="flex flex-wrap justify-between items-center border-b border-slate-900 pb-2 gap-2">
                   <span className="text-xs font-bold text-cyan-300 flex items-center gap-1.5 uppercase font-mono">
-                    <Calendar className="w-3.5 h-3.5 text-cyan-400" /> 
+                    <Calendar className="w-3.5 h-3.5 text-cyan-400" />
                     <span>Daily Breakdown (Showing {selectedDaysCount} of 7 Days):</span>
                   </span>
                   <span className="text-[11px] text-emerald-400 font-mono font-bold">
@@ -862,22 +878,20 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
                   </span>
                 </div>
 
-                <div className={`grid gap-3 text-xs ${
-                  selectedDaysCount <= 2 ? 'grid-cols-1 sm:grid-cols-2' :
+                <div className={`grid gap-3 text-xs ${selectedDaysCount <= 2 ? 'grid-cols-1 sm:grid-cols-2' :
                   selectedDaysCount <= 4 ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4' :
-                  'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
-                }`}>
+                    'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
+                  }`}>
                   {DAYS_MOCK_DATA.slice(0, Math.max(selectedDaysCount, 2)).map(d => {
                     const isActive = daysSubCheckMode === d.key;
                     return (
-                      <div 
+                      <div
                         key={d.key}
                         onClick={() => setDaysSubCheckMode(d.key)}
-                        className={`p-3.5 rounded-xl border transition cursor-pointer space-y-1.5 ${
-                          isActive
-                            ? 'bg-slate-900 border-cyan-400 ring-2 ring-cyan-500/50 shadow-lg scale-[1.02]'
-                            : 'bg-slate-900/60 border-slate-800 hover:border-cyan-700 hover:bg-slate-900'
-                        }`}
+                        className={`p-3.5 rounded-xl border transition cursor-pointer space-y-1.5 ${isActive
+                          ? 'bg-slate-900 border-cyan-400 ring-2 ring-cyan-500/50 shadow-lg scale-[1.02]'
+                          : 'bg-slate-900/60 border-slate-800 hover:border-cyan-700 hover:bg-slate-900'
+                          }`}
                       >
                         <div className="flex justify-between items-center">
                           <span className="font-extrabold text-white text-xs flex items-center gap-1">
@@ -923,7 +937,7 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
 
           {/* SIGNCOINS REDEMPTION TO CASH MODULE */}
           <div className="glass-panel rounded-3xl p-5 border-2 border-amber-500/40 bg-slate-900/95 space-y-4 shadow-xl">
-            
+
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2.5">
                 <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-400/60 flex items-center justify-center text-amber-300 text-xl font-bold">
@@ -953,7 +967,7 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
 
             {/* Interactive Redemption Calculator */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-              
+
               <div className="md:col-span-7 p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-3">
                 <label className="text-xs font-bold text-slate-300 flex justify-between">
                   <span>Select Coins to Redeem:</span>
@@ -978,11 +992,10 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
                       key={amt}
                       onClick={() => setCoinsToRedeem(Math.min(wallet.signCoins, amt))}
                       disabled={wallet.signCoins < amt}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold border transition ${
-                        coinsToRedeem === amt 
-                          ? 'bg-amber-500 text-slate-950 border-amber-400' 
-                          : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white'
-                      }`}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold border transition ${coinsToRedeem === amt
+                        ? 'bg-amber-500 text-slate-950 border-amber-400'
+                        : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white'
+                        }`}
                     >
                       {amt.toLocaleString()} 🪙
                     </button>
@@ -1036,7 +1049,7 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
 
           {/* DYNAMIC INCENTIVES & SURGE CALCULATOR */}
           <div className="glass-panel rounded-3xl p-5 border-2 border-slate-800 bg-slate-900/95 space-y-4 shadow-xl">
-            
+
             <div className="flex justify-between items-center border-b border-slate-800 pb-3">
               <div>
                 <h3 className="font-extrabold text-base text-white flex items-center gap-2">
@@ -1072,10 +1085,9 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
 
             {/* Interactive Incentives Toggles */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              
-              <label className={`p-3 rounded-2xl border cursor-pointer transition flex items-center justify-between ${
-                incentiveSurge ? 'bg-cyan-950/40 border-cyan-400' : 'bg-slate-950 border-slate-800'
-              }`}>
+
+              <label className={`p-3 rounded-2xl border cursor-pointer transition flex items-center justify-between ${incentiveSurge ? 'bg-cyan-950/40 border-cyan-400' : 'bg-slate-950 border-slate-800'
+                }`}>
                 <div>
                   <span className="font-bold text-white text-xs block">⚡ Peak Hour Surge</span>
                   <span className="text-[10px] text-cyan-300 font-mono">+{formatMoney(3.50)} / order</span>
@@ -1088,9 +1100,8 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
                 />
               </label>
 
-              <label className={`p-3 rounded-2xl border cursor-pointer transition flex items-center justify-between ${
-                incentiveDeafBridge ? 'bg-purple-950/40 border-purple-400' : 'bg-slate-950 border-slate-800'
-              }`}>
+              <label className={`p-3 rounded-2xl border cursor-pointer transition flex items-center justify-between ${incentiveDeafBridge ? 'bg-purple-950/40 border-purple-400' : 'bg-slate-950 border-slate-800'
+                }`}>
                 <div>
                   <span className="font-bold text-white text-xs block">🤟 Sign Language Bridge</span>
                   <span className="text-[10px] text-purple-300 font-mono">+{formatMoney(2.00)} / order</span>
@@ -1103,9 +1114,8 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
                 />
               </label>
 
-              <label className={`p-3 rounded-2xl border cursor-pointer transition flex items-center justify-between ${
-                incentiveWeather ? 'bg-amber-950/40 border-amber-400' : 'bg-slate-950 border-slate-800'
-              }`}>
+              <label className={`p-3 rounded-2xl border cursor-pointer transition flex items-center justify-between ${incentiveWeather ? 'bg-amber-950/40 border-amber-400' : 'bg-slate-950 border-slate-800'
+                }`}>
                 <div>
                   <span className="font-bold text-white text-xs block">🌧️ Weather Rush Pay</span>
                   <span className="text-[10px] text-amber-300 font-mono">+{formatMoney(4.00)} / order</span>
@@ -1173,7 +1183,7 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
          ========================================================================= */}
       {activeRiderTab === 'delivery' && (
         <div className="space-y-4 animate-fadeIn">
-          
+
           {/* ACCESSIBLE STATUS PROGRESS INDICATOR */}
           <div className="glass-panel rounded-2xl p-4 border border-slate-800 space-y-3">
             <div className="flex justify-between items-center text-xs font-bold text-slate-300">
@@ -1186,19 +1196,18 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
               {[
-                { id: 'pickup', label: '1. Pickup', icon: '🛍️' },
-                { id: 'en_route', label: '2. En Route', icon: '🏍️' },
-                { id: 'arrived', label: '3. Arrived', icon: '📍' },
-                { id: 'delivered', label: '4. Delivered', icon: '✅' },
+                { id: 'pickup', label: `1. ${t('order_status_pickup', 'Pickup')}`, icon: '🛍️' },
+                { id: 'en_route', label: `2. ${t('order_status_en_route', 'En Route')}`, icon: '🏍️' },
+                { id: 'arrived', label: `3. ${t('order_status_arrived', 'Arrived')}`, icon: '📍' },
+                { id: 'delivered', label: `4. ${t('order_status_delivered', 'Delivered')}`, icon: '✅' },
               ].map((st) => (
                 <button
                   key={st.id}
                   onClick={() => updateOrderStatus(st.id)}
-                  className={`p-3 rounded-xl font-extrabold text-xs sm:text-sm transition flex items-center justify-center gap-1.5 border-2 ${
-                    order.status === st.id
-                      ? 'bg-gradient-to-r from-cyan-400 to-emerald-400 text-slate-950 border-white shadow-lg scale-[1.02]'
-                      : 'bg-slate-950 hover:bg-slate-800 text-slate-300 border-slate-800'
-                  }`}
+                  className={`p-3 rounded-xl font-extrabold text-xs sm:text-sm transition flex items-center justify-center gap-1.5 border-2 ${order.status === st.id
+                    ? 'bg-gradient-to-r from-cyan-400 to-emerald-400 text-slate-950 border-white shadow-lg scale-[1.02]'
+                    : 'bg-slate-950 hover:bg-slate-800 text-slate-300 border-slate-800'
+                    }`}
                 >
                   <span>{st.icon}</span>
                   <span>{st.label}</span>
@@ -1209,7 +1218,7 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
 
           {/* MAP & ADDRESS BOX */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-            
+
             <div className="md:col-span-5 glass-panel rounded-2xl p-5 border border-slate-800 space-y-4 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between text-xs text-slate-400 font-bold mb-2">
@@ -1218,7 +1227,7 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
                     {order.distance}
                   </span>
                 </div>
-                
+
                 <h3 className="text-lg font-bold text-white">{order.customerAddress}</h3>
                 <p className="text-xs text-slate-300 mt-1">Customer: <strong>{order.customerName}</strong> ({order.customerPhone})</p>
 
@@ -1230,7 +1239,7 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
                       <span className="text-xl font-mono font-extrabold text-amber-300">{order.gateCode}</span>
                     </div>
                   </div>
-                  <button 
+                  <button
                     onClick={() => handleRiderQuickTap(RIDER_QUICK_SIGNS[1])}
                     className="px-3 py-1.5 bg-amber-500 text-slate-950 text-xs font-bold rounded-lg hover:brightness-110"
                   >
@@ -1239,9 +1248,21 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
-                <span>Merchant: <strong className="text-white">{order.merchantName}</strong></span>
-                <span className="text-cyan-400 font-semibold">{order.totalAmount}</span>
+              <div className="pt-3 border-t border-slate-800 flex flex-col gap-2">
+                <div className="flex items-center justify-between text-xs text-slate-400">
+                  <span>Merchant: <strong className="text-white">{order.merchantName}</strong></span>
+                  <span className="text-cyan-400 font-semibold">{order.totalAmount}</span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => openTransferModal('rider')}
+                  className="w-full py-2 px-3 bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-amber-500/15 hover:from-amber-500/25 hover:to-orange-500/25 text-amber-300 border border-amber-500/40 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm"
+                  title="Handoff or reassign order to a nearby courier (Puncture / Low Battery / Emergency)"
+                >
+                  <ArrowRightLeft className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Transfer Order to Nearby Courier (Puncture / Battery / Handoff)</span>
+                </button>
               </div>
             </div>
 
@@ -1252,9 +1273,12 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
 
           </div>
 
+          {/* NEARBY COURIERS QUICK ORDER TRANSFER RADAR */}
+          <NearbyRidersTransferCard initiatedBy="rider" />
+
           {/* REAL-TIME 3D SIGN LANGUAGE AVATAR & CONVERSATION HUB */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-            
+
             {/* 3D SIGN AVATAR CARD */}
             <div className="md:col-span-6 glass-panel rounded-2xl p-4 border border-slate-800 flex flex-col justify-between space-y-3 bg-slate-900/70">
               <div className="flex items-center justify-between border-b border-slate-800 pb-2">
@@ -1279,7 +1303,7 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
 
             {/* QUICK TAP-TO-SIGN ACTION PHRASES & CHAT */}
             <div className="md:col-span-6 glass-panel rounded-2xl p-4 border border-slate-800 space-y-4 flex flex-col justify-between bg-slate-900/70">
-              
+
               <div className="space-y-2">
                 <div className="flex items-center justify-between border-b border-slate-800 pb-2">
                   <h4 className="text-xs font-bold text-white flex items-center gap-1.5 uppercase">
@@ -1294,41 +1318,52 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
-                  {riderSignsList.slice(0, 6).map((item, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => handleRiderQuickTap(item)}
-                      className="p-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-cyan-400 rounded-xl text-left text-xs font-bold transition flex items-center gap-2 group"
-                    >
-                      <span className="text-lg group-hover:scale-110 transition">{item.icon}</span>
-                      <span className="text-slate-200 group-hover:text-cyan-300 truncate">{item.label}</span>
-                    </button>
-                  ))}
+                  {riderSignsList.slice(0, 6).map((item, idx) => {
+                    const transLabel = item.translations ? (item.translations[language] || item.translations.en || item.label) : item.label;
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => handleRiderQuickTap(item)}
+                        className="p-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-cyan-400 rounded-xl text-left text-xs font-bold transition flex items-center gap-2 group"
+                      >
+                        <span className="text-lg group-hover:scale-110 transition">{item.icon}</span>
+                        <span className="text-slate-200 group-hover:text-cyan-300 truncate">{transLabel}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
               {/* Chat Log Preview */}
               <div className="space-y-1.5">
-                <span className="text-[10px] font-bold text-slate-500 uppercase">Live Delivery Communication:</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase">Live Delivery Communication:</span>
+                  <div className="flex items-center gap-1.5 bg-slate-950 px-2 py-0.5 rounded-lg border border-slate-800 text-[10px] text-cyan-400 font-bold">
+                    <Globe className="w-3 h-3 text-cyan-400" />
+                    <span>{SUPPORTED_LANGUAGES.find(l => l.code === language)?.flag || '🌐'} {SUPPORTED_LANGUAGES.find(l => l.code === language)?.nativeName || language.toUpperCase()}</span>
+                  </div>
+                </div>
                 <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
-                  {order.chatMessages.map((msg, idx) => (
-                    <div 
-                      key={idx}
-                      className={`p-2 rounded-xl text-xs ${
-                        msg.sender === 'rider'
+                  {order.chatMessages.map((msg, idx) => {
+                    const messageText = translateChatMessage(msg, language);
+                    return (
+                      <div
+                        key={idx}
+                        className={`p-2 rounded-xl text-xs ${msg.sender === 'rider'
                           ? 'bg-cyan-950/80 border border-cyan-500/40 text-cyan-100 ml-4'
                           : msg.sender === 'customer'
-                          ? 'bg-slate-950 border border-slate-800 text-slate-200 mr-4'
-                          : 'bg-purple-950/60 border border-purple-800 text-purple-200'
-                      }`}
-                    >
-                      <div className="flex justify-between items-center text-[10px] text-slate-400 font-mono mb-0.5">
-                        <span className="capitalize font-bold">{msg.sender}</span>
-                        <span>{msg.timestamp}</span>
+                            ? 'bg-slate-950 border border-slate-800 text-slate-200 mr-4'
+                            : 'bg-purple-950/60 border border-purple-800 text-purple-200'
+                          }`}
+                      >
+                        <div className="flex justify-between items-center text-[10px] text-slate-400 font-mono mb-0.5">
+                          <span className="capitalize font-bold">{msg.sender}</span>
+                          <span>{msg.timestamp}</span>
+                        </div>
+                        <p>{messageText}</p>
                       </div>
-                      <p>{msg.text}</p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 

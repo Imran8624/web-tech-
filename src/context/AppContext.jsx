@@ -1,4 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { SUPPORTED_LANGUAGES, RIDER_QUICK_SIGNS } from '../constants/languages';
+import { TRANSLATIONS } from '../constants/translations';
+import { DEFAULT_CHAT_MESSAGES, LANG_LOCALES, translateChatMessage } from '../constants/communicationTranslations';
+import { NEARBY_RIDERS } from '../constants/nearbyRiders.js';
 
 const AppContext = createContext(null);
 
@@ -222,21 +226,7 @@ export const initialOrderState = {
     isDeafMute: true,
     badges: ["Deaf / Non-Verbal Partner", "Top Delivery Pro", "SignShift Certified"]
   },
-  chatMessages: [
-    {
-      id: 1,
-      sender: "system",
-      text: "Real-Time Sign & Visual Assist is ACTIVE for this delivery. Rider Alex uses SignShift visual bridge.",
-      timestamp: "12:14 PM"
-    },
-    {
-      id: 2,
-      sender: "customer",
-      text: "Hi Alex! Please leave the food at the front door and ring the bell. Gate code is 4022.",
-      signKeywords: ["leave", "door", "gate", "code"],
-      timestamp: "12:15 PM"
-    }
-  ]
+  chatMessages: DEFAULT_CHAT_MESSAGES
 };
 
 export const DEFAULT_ACTIVITY_LOGS = [
@@ -488,6 +478,26 @@ export const AppProvider = ({ children }) => {
   const [flashAlerts, setFlashAlerts] = useState(true);
   const [screenFlash, setScreenFlash] = useState(null);
 
+  // Multi-Language Localization System across all sectors
+  const [language, setLanguageState] = useState(() => loadStorage('signshift_language', 'en'));
+
+  const setLanguage = useCallback((langCode) => {
+    setLanguageState(langCode);
+    saveStorage('signshift_language', langCode);
+  }, []);
+
+  const t = useCallback((key, fallback = '') => {
+    const langDict = TRANSLATIONS[language] || TRANSLATIONS.en;
+    if (langDict && langDict[key] !== undefined) {
+      return langDict[key];
+    }
+    const enDict = TRANSLATIONS.en;
+    if (enDict && enDict[key] !== undefined) {
+      return enDict[key];
+    }
+    return fallback || key;
+  }, [language]);
+
   const setFontSize = useCallback((sizeId) => {
     setFontSizeState(sizeId);
     const preset = FONT_SIZE_PRESETS.find(p => p.id === sizeId);
@@ -576,6 +586,7 @@ export const AppProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(() => loadStorage('signshift_is_auth', false));
   const [savedAddresses, setSavedAddresses] = useState(() => loadStorage('signshift_addresses', DEFAULT_ADDRESSES));
   const [restaurantsList, setRestaurantsList] = useState(() => loadStorage('signshift_restaurants', DEFAULT_RESTAURANTS));
+  const [nearbyRidersList, setNearbyRidersList] = useState(() => loadStorage('signshift_nearby_riders', NEARBY_RIDERS));
   const [order, setOrder] = useState(() => loadStorage('signshift_order', initialOrderState));
   const [activityLogs, setActivityLogs] = useState(() => loadStorage('signshift_activity_logs', DEFAULT_ACTIVITY_LOGS));
   const [notificationsList, setNotificationsList] = useState(() => loadStorage('signshift_notifications', DEFAULT_NOTIFICATIONS));
@@ -586,6 +597,15 @@ export const AppProvider = ({ children }) => {
   const [isTranslating, setIsTranslating] = useState(false);
   const [signSpeed, setSignSpeed] = useState(1);
   const [avatarMode, setAvatarMode] = useState(() => loadStorage('signshift_avatar_mode', 'human'));
+  const [transferModalState, setTransferModalState] = useState({ isOpen: false, initiatedBy: 'rider' });
+
+  const openTransferModal = useCallback((initiatedBy = 'rider') => {
+    setTransferModalState({ isOpen: true, initiatedBy });
+  }, []);
+
+  const closeTransferModal = useCallback(() => {
+    setTransferModalState(prev => ({ ...prev, isOpen: false }));
+  }, []);
 
   // Save to LocalStorage on updates
   useEffect(() => { saveStorage('signshift_users', usersList); }, [usersList]);
@@ -593,11 +613,13 @@ export const AppProvider = ({ children }) => {
   useEffect(() => { saveStorage('signshift_is_auth', isAuthenticated); }, [isAuthenticated]);
   useEffect(() => { saveStorage('signshift_addresses', savedAddresses); }, [savedAddresses]);
   useEffect(() => { saveStorage('signshift_restaurants', restaurantsList); }, [restaurantsList]);
+  useEffect(() => { saveStorage('signshift_nearby_riders', nearbyRidersList); }, [nearbyRidersList]);
   useEffect(() => { saveStorage('signshift_order', order); }, [order]);
   useEffect(() => { saveStorage('signshift_rider_gps', riderGps); }, [riderGps]);
   useEffect(() => { saveStorage('signshift_avatar_mode', avatarMode); }, [avatarMode]);
   useEffect(() => { saveStorage('signshift_activity_logs', activityLogs); }, [activityLogs]);
   useEffect(() => { saveStorage('signshift_notifications', notificationsList); }, [notificationsList]);
+  useEffect(() => { saveStorage('signshift_language', language); }, [language]);
 
   // Log Activity Helper
   const logActivity = useCallback((action, category = 'SYSTEM', details = '', actor = 'System', status = 'INFO') => {
@@ -634,16 +656,18 @@ export const AppProvider = ({ children }) => {
   }, [flashAlerts, hapticAlerts]);
 
   // Speech Synthesis Helper
-  const speakText = useCallback((text) => {
+  const speakText = useCallback((text, targetLang = null) => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
+      const chosenLang = targetLang || language || 'en';
+      utterance.lang = LANG_LOCALES[chosenLang] || 'en-US';
       utterance.rate = 1.0;
       utterance.pitch = 1.0;
       utterance.volume = 1.0;
       window.speechSynthesis.speak(utterance);
     }
-  }, []);
+  }, [language]);
 
   // --- AUTHENTICATION & USER MANAGEMENT --- //
 
@@ -1155,8 +1179,8 @@ export const AppProvider = ({ children }) => {
   }, [riderGps?.isSimulating, riderGps?.isLiveDevice, riderGps?.simSpeed, order]);
 
   // Send message from customer
-  const sendCustomerMessage = useCallback((text) => {
-    if (!text.trim()) return;
+  const sendCustomerMessage = useCallback((text, customTranslations = null) => {
+    if (!text || !text.trim()) return;
 
     setIsTranslating(true);
     triggerVisualAlert('cyan');
@@ -1165,6 +1189,8 @@ export const AppProvider = ({ children }) => {
       id: Date.now(),
       sender: 'customer',
       text: text.trim(),
+      translations: customTranslations || null,
+      sourceLang: language,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
@@ -1178,17 +1204,24 @@ export const AppProvider = ({ children }) => {
     setTimeout(() => {
       setIsTranslating(false);
     }, 1200);
-  }, [triggerVisualAlert, logActivity]);
+  }, [triggerVisualAlert, logActivity, language]);
 
   // Send tap-to-sign response from rider
-  const sendRiderResponse = useCallback((riderText, signPhrase) => {
+  const sendRiderResponse = useCallback((riderText, signPhrase, customTranslations = null) => {
     triggerVisualAlert('gold');
+
+    let resolvedTranslations = customTranslations;
+    if (!resolvedTranslations && signPhrase) {
+      const match = RIDER_QUICK_SIGNS.find(s => s.key === signPhrase || s.label === signPhrase);
+      if (match?.translations) resolvedTranslations = match.translations;
+    }
 
     const newMessage = {
       id: Date.now(),
       sender: 'rider',
       text: riderText,
       signPhrase: signPhrase,
+      translations: resolvedTranslations,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
@@ -1200,9 +1233,9 @@ export const AppProvider = ({ children }) => {
     logActivity("Rider Visual Sign Response", "COMMUNICATION", `Rider sent: "${riderText}" [Gesture: ${signPhrase}]`, "Alex Rivera (Rider)", "SUCCESS");
 
     if (soundAlerts) {
-      speakText(`Message from rider: ${riderText}`);
+      speakText(`Message from rider: ${riderText}`, language);
     }
-  }, [triggerVisualAlert, soundAlerts, speakText, logActivity]);
+  }, [triggerVisualAlert, soundAlerts, speakText, logActivity, language]);
 
   // Push Notification Helper
   const pushNotification = useCallback(({
@@ -1425,6 +1458,88 @@ export const AppProvider = ({ children }) => {
     }
   }, [order, triggerVisualAlert, soundAlerts, speakText, logActivity, pushNotification]);
 
+  // Transfer / Reassign order to a nearby courier (initiated by Rider, Merchant, or Admin)
+  const transferOrderToRider = useCallback((newRiderId, initiatedBy = 'rider', reason = 'Proximity Handoff') => {
+    const targetRider = nearbyRidersList.find(r => r.id === newRiderId) || NEARBY_RIDERS.find(r => r.id === newRiderId);
+    if (!targetRider) return { success: false, message: "Selected rider not found" };
+
+    const oldRiderName = order?.riderInfo?.name || "Alex Rivera";
+    const newRiderName = targetRider.name;
+
+    // Update order rider information and add multilingual notice
+    setOrder(prev => {
+      const updatedRiderInfo = {
+        id: targetRider.id,
+        name: targetRider.name,
+        rating: targetRider.rating,
+        deliveriesCount: targetRider.deliveriesCount,
+        isDeafMute: targetRider.isDeafMute,
+        phone: targetRider.phone,
+        vehicle: targetRider.vehicle,
+        avatar: targetRider.avatar,
+        battery: targetRider.battery,
+        distanceStr: targetRider.distanceStr,
+        etaStr: targetRider.etaStr,
+        badges: [
+          targetRider.isDeafMute ? "Deaf / Non-Verbal Partner" : "Fast Dispatch Pro",
+          targetRider.badge || "Top Delivery Pro",
+          "SignShift Certified"
+        ]
+      };
+
+      const transferNotice = {
+        id: Date.now(),
+        sender: 'system',
+        translations: {
+          en: `Order transferred from ${oldRiderName} to nearby courier ${newRiderName} (${targetRider.distanceStr}, ETA: ${targetRider.etaStr}). Reason: ${reason}.`,
+          kn: `ಆರ್ಡರ್ ಅನ್ನು ${oldRiderName} ರಿಂದ ಹತ್ತಿರದ ರೈಡರ್ ${newRiderName} ಗೆ ವರ್ಗಾಯಿಸಲಾಗಿದೆ (${targetRider.distanceStr}, ಅಂದಾಜು: ${targetRider.etaStr}). ಕಾರಣ: ${reason}.`,
+          es: `Pedido transferido de ${oldRiderName} al repartidor cercano ${newRiderName} (${targetRider.distanceStr}, llegada: ${targetRider.etaStr}). Motivo: ${reason}.`,
+          fr: `Commande transférée de ${oldRiderName} au livreur à proximité ${newRiderName} (${targetRider.distanceStr}, arrivée: ${targetRider.etaStr}). Motif: ${reason}.`,
+          de: `Auftrag von ${oldRiderName} an den nahegelegenen Lieferanten ${newRiderName} übertragen (${targetRider.distanceStr}, Ankunft: ${targetRider.etaStr}). Grund: ${reason}.`,
+          ja: `注文が ${oldRiderName} から近くの配達員 ${newRiderName} に転送されました（距離: ${targetRider.distanceStr}、到着予定: ${targetRider.etaStr}）。理由: ${reason}。`,
+          zh: `订单已从 ${oldRiderName} 转派给附近的专送员 ${newRiderName}（距离: ${targetRider.distanceStr}，预计到达: ${targetRider.etaStr}）。原因: ${reason}。`,
+          hi: `ऑर्डर ${oldRiderName} से निकटतम राइडर ${newRiderName} को ट्रांसफर किया गया (${targetRider.distanceStr}, अनुमानित समय: ${targetRider.etaStr})। कारण: ${reason}।`,
+          ar: `تم تحويل الطلب من ${oldRiderName} إلى المندوب القريب ${newRiderName} (${targetRider.distanceStr}، الوصول: ${targetRider.etaStr}). السبب: ${reason}.`
+        },
+        text: `Order transferred from ${oldRiderName} to ${newRiderName} (${targetRider.distanceStr}). Reason: ${reason}.`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+
+      return {
+        ...prev,
+        riderInfo: updatedRiderInfo,
+        pickupEta: targetRider.etaStr,
+        chatMessages: [...prev.chatMessages, transferNotice]
+      };
+    });
+
+    const actorLabel = initiatedBy === 'merchant' ? 'Kitchen Merchant' : initiatedBy === 'admin' ? 'SignShift Administrator' : `${oldRiderName} (Rider)`;
+
+    logActivity(
+      "Order Transferred to Nearby Rider",
+      "ORDER",
+      `Order #${order.id} transferred to ${newRiderName} (${targetRider.vehicle}, ${targetRider.distanceStr}). Reason: ${reason}`,
+      actorLabel,
+      "SUCCESS"
+    );
+
+    pushNotification({
+      targetRole: 'all',
+      title: "Order Transferred to Nearby Rider 🔄",
+      message: `Order #${order.id} reassigned to ${newRiderName} (${targetRider.distanceStr}). Action taken by ${actorLabel}.`,
+      type: 'rider_pickup',
+      icon: 'Navigation'
+    });
+
+    triggerVisualAlert('cyan');
+
+    if (soundAlerts) {
+      speakText(`Order transferred to nearby courier ${newRiderName}.`, language);
+    }
+
+    return { success: true, targetRider };
+  }, [order, nearbyRidersList, logActivity, pushNotification, triggerVisualAlert, soundAlerts, speakText, language]);
+
   return (
     <AppContext.Provider value={{
       currentView,
@@ -1524,7 +1639,25 @@ export const AppProvider = ({ children }) => {
       setSignSpeed,
       avatarMode,
       setAvatarMode,
-      speakText
+      speakText,
+
+      // Multi-Language Localization Engine across all sectors
+      language,
+      setLanguage,
+      t,
+      SUPPORTED_LANGUAGES,
+      RIDER_QUICK_SIGNS,
+      TRANSLATIONS,
+      translateChatMessage,
+      LANG_LOCALES,
+
+      // Nearby Riders & Order Transfer
+      nearbyRidersList,
+      setNearbyRidersList,
+      transferOrderToRider,
+      transferModalState,
+      openTransferModal,
+      closeTransferModal
     }}>
       <div className={`min-h-screen ${
         theme === 'neon' ? 'high-contrast-neon theme-neon' :

@@ -14,9 +14,12 @@ import {
   Volume2,
   Navigation,
   ArrowRight,
-  PackageCheck
+  PackageCheck,
+  Globe,
+  ArrowRightLeft
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { NearbyRidersTransferCard } from '../components/NearbyRidersTransferCard';
 
 export const MerchantPortal = () => {
   const { 
@@ -26,7 +29,12 @@ export const MerchantPortal = () => {
     speakText, 
     notifyOrderAppeared, 
     notifyOrderReady,
-    notificationsList = []
+    notificationsList = [],
+    language = 'en',
+    setLanguage,
+    t = (k) => k,
+    SUPPORTED_LANGUAGES = [],
+    openTransferModal
   } = useApp();
 
   const [orderReady, setOrderReady] = useState(order.status === 'en_route' || order.status === 'arrived' || order.status === 'delivered');
@@ -66,14 +74,31 @@ export const MerchantPortal = () => {
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-extrabold text-white">{order.merchantName}</h2>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-amber-950 text-amber-300 border border-amber-800">
-                Kitchen Live
+                {t('merchant_live_orders', 'Kitchen Live')}
               </span>
             </div>
-            <p className="text-xs text-slate-400">Order Dispatch, Kitchen Telemetry & Real-Time Handoff Portal</p>
+            <p className="text-xs text-slate-400">{t('merchant_title', 'Order Dispatch, Kitchen Telemetry & Real-Time Handoff Portal')}</p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Language Selector for Kitchen Staff */}
+          <div className="flex items-center bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 shadow-sm">
+            <Globe className="w-4 h-4 text-amber-400 mr-1.5" />
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              className="bg-transparent text-xs font-bold text-slate-200 focus:outline-none cursor-pointer"
+              aria-label="Merchant language"
+            >
+              {SUPPORTED_LANGUAGES.map((l) => (
+                <option key={l.code} value={l.code} className="bg-slate-900 text-slate-100">
+                  {l.flag} {l.nativeName || l.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <button
             onClick={handleSimulateNewOrderAppeared}
             className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold transition flex items-center gap-1.5 shadow-lg shadow-amber-500/20"
@@ -105,11 +130,11 @@ export const MerchantPortal = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-400 font-mono">Status:</span>
+          <span className="text-xs text-slate-400 font-mono">{t('status', 'Status')}:</span>
           <span className={`px-3 py-1 rounded-full text-xs font-extrabold uppercase ${
             orderReady ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse'
           }`}>
-            {orderReady ? '✅ Ready For Pickup' : '🍳 Cooking In Kitchen'}
+            {orderReady ? `✅ ${t('merchant_ready_counter', 'Ready For Pickup')}` : `🍳 ${t('merchant_preparing', 'Cooking In Kitchen')}`}
           </span>
         </div>
       </div>
@@ -130,9 +155,18 @@ export const MerchantPortal = () => {
 
           <div className="text-right">
             <span className="text-xs text-slate-400 block font-bold">Designated Courier</span>
-            <span className="text-cyan-400 font-bold text-sm flex items-center gap-1">
-              🤟 Alex Rivera (Deaf Partner Pro)
+            <span className="text-cyan-400 font-bold text-sm flex items-center justify-end gap-1">
+              🤟 {order.riderInfo?.name || 'Alex Rivera'} {order.riderInfo?.isDeafMute ? '(Deaf Partner Pro)' : ''}
             </span>
+            <button
+              type="button"
+              onClick={() => openTransferModal('merchant')}
+              className="mt-1.5 px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ml-auto shadow-sm"
+              title="Transfer order to closer nearby courier"
+            >
+              <ArrowRightLeft className="w-3.5 h-3.5 text-amber-400" />
+              <span>Transfer to Closer Rider</span>
+            </button>
           </div>
         </div>
 
@@ -206,6 +240,9 @@ export const MerchantPortal = () => {
         </div>
 
       </div>
+
+      {/* KITCHEN DISPATCH: NEARBY COURIERS TRANSFER RADAR */}
+      <NearbyRidersTransferCard initiatedBy="merchant" />
 
       {/* RECENT MERCHANT NOTIFICATIONS LOG */}
       <div className="glass-panel rounded-3xl p-5 border border-slate-800 bg-slate-900/80 space-y-3">

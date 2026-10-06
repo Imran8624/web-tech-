@@ -40,9 +40,11 @@ import {
   Cpu,
   Package,
   Layers,
-  FileCode
+  FileCode,
+  ArrowRightLeft
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { NearbyRidersTransferCard } from '../components/NearbyRidersTransferCard';
 
 export const AdminDashboard = () => {
   const { 
@@ -63,7 +65,12 @@ export const AdminDashboard = () => {
     logoutUser,
     activityLogs = [],
     logActivity,
-    clearActivityLogs
+    clearActivityLogs,
+    language = 'en',
+    setLanguage,
+    t = (k) => k,
+    SUPPORTED_LANGUAGES = [],
+    openTransferModal
   } = useApp();
 
   // Admin Access Gate State
@@ -439,6 +446,23 @@ export const AdminDashboard = () => {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Admin Global Language Selector */}
+          <div className="flex items-center bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 shadow-sm">
+            <Globe className="w-4 h-4 text-purple-400 mr-1.5" />
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              className="bg-transparent text-xs font-bold text-slate-200 focus:outline-none cursor-pointer"
+              aria-label="Admin language"
+            >
+              {SUPPORTED_LANGUAGES.map((l) => (
+                <option key={l.code} value={l.code} className="bg-slate-900 text-slate-100">
+                  {l.flag} {l.nativeName || l.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <button
             onClick={handleBroadcastAlert}
             className="px-3.5 py-2 bg-gradient-to-r from-cyan-400 to-emerald-400 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg hover:scale-105 transition flex items-center gap-1.5"
@@ -661,10 +685,11 @@ export const AdminDashboard = () => {
 
           {/* SUB-VIEW: OVERVIEW (ALL COLLECTIONS SUMMARY) */}
           {dbSubTab === 'all' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              
-              {/* Collection 1: Orders */}
-              <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-3">
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                {/* Collection 1: Orders */}
+                <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-3">
                 <div className="flex justify-between items-center border-b border-slate-900 pb-2">
                   <div className="flex items-center gap-2">
                     <Package className="w-4 h-4 text-emerald-400" />
@@ -772,9 +797,13 @@ export const AdminDashboard = () => {
               </div>
 
             </div>
-          )}
 
-          {/* SUB-VIEW: ORDERS TABLE */}
+            {/* ADMIN FLEET RE-DISPATCH & NEARBY COURIERS RADAR */}
+            <NearbyRidersTransferCard initiatedBy="admin" />
+          </div>
+        )}
+
+        {/* SUB-VIEW: ORDERS TABLE */}
           {dbSubTab === 'orders' && (
             <div className="space-y-4">
               <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-4">
@@ -786,9 +815,20 @@ export const AdminDashboard = () => {
                     </h4>
                     <p className="text-xs text-slate-400">Live order state shared across Customer, Rider, and Merchant dashboards</p>
                   </div>
-                  <span className="px-3 py-1 rounded-full text-xs font-extrabold uppercase bg-emerald-950 text-emerald-300 border border-emerald-800">
-                    Status: {order.status}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openTransferModal('admin')}
+                      className="px-3.5 py-1.5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-slate-950 font-black text-xs rounded-xl shadow transition flex items-center gap-1.5"
+                      title="Reassign order to a closer nearby courier"
+                    >
+                      <ArrowRightLeft className="w-3.5 h-3.5 text-slate-950" />
+                      <span>Transfer Order 🔄</span>
+                    </button>
+                    <span className="px-3 py-1 rounded-full text-xs font-extrabold uppercase bg-emerald-950 text-emerald-300 border border-emerald-800">
+                      Status: {order.status}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs font-mono">
@@ -808,12 +848,22 @@ export const AdminDashboard = () => {
                     <div className="text-slate-400">Pickup: {order.pickupEta} | Delivery: {order.deliveryEta}</div>
                   </div>
 
-                  <div className="p-3 bg-slate-900 rounded-xl space-y-1 border border-slate-800">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase">Assigned Rider Details</span>
-                    <div className="text-white font-bold">{order.riderInfo?.name || 'Alex Rivera'}</div>
-                    <div className="text-slate-400">Rating: {order.riderInfo?.rating} ({order.riderInfo?.deliveriesCount})</div>
-                    <div className="text-cyan-400">🤟 {order.riderInfo?.isDeafMute ? 'Deaf / Non-Verbal Verified' : 'Standard'}</div>
-                    <div className="text-slate-400">Visual Signal Bridge: ACTIVE</div>
+                  <div className="p-3 bg-slate-900 rounded-xl space-y-1.5 border border-slate-800 flex flex-col justify-between">
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-500 uppercase">Assigned Rider Details</span>
+                      <div className="text-white font-bold text-sm">{order.riderInfo?.name || 'Alex Rivera'}</div>
+                      <div className="text-slate-400 text-xs">Rating: {order.riderInfo?.rating} ({order.riderInfo?.deliveriesCount})</div>
+                      <div className="text-cyan-400 text-xs">🤟 {order.riderInfo?.isDeafMute ? 'Deaf / Non-Verbal Verified' : 'Standard'}</div>
+                      <div className="text-slate-400 text-[11px]">Visual Signal Bridge: ACTIVE</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => openTransferModal('admin')}
+                      className="w-full mt-2 py-1.5 px-3 bg-gradient-to-r from-cyan-950 to-blue-950 hover:from-cyan-900 hover:to-blue-900 text-cyan-300 border border-cyan-700/60 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow"
+                    >
+                      <ArrowRightLeft className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Reassign to Nearby Rider</span>
+                    </button>
                   </div>
                 </div>
 
@@ -867,6 +917,9 @@ export const AdminDashboard = () => {
                 </div>
 
               </div>
+
+              {/* ADMIN FLEET RE-DISPATCH & NEARBY COURIERS RADAR */}
+              <NearbyRidersTransferCard initiatedBy="admin" />
             </div>
           )}
 

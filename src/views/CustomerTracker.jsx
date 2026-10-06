@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { LiveGpsTrackerMap } from '../components/LiveGpsTrackerMap';
 import { SUPPORTED_LANGUAGES } from '../constants/languages';
+import { DIRECT_COMM_UI, translateChatMessage, getPromptTranslations, LANG_LOCALES } from '../constants/communicationTranslations';
 import { 
   Package, 
   MapPin, 
@@ -26,7 +27,8 @@ import {
   Trash2,
   Lock,
   Key,
-  X
+  X,
+  ArrowRightLeft
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -37,6 +39,7 @@ export const CustomerTracker = ({ onOpenVoiceAgent }) => {
     order, 
     restaurantsList,
     selectRestaurant, 
+    openTransferModal, 
     savedAddresses,
     selectAddress, 
     addCustomAddress, 
@@ -44,12 +47,19 @@ export const CustomerTracker = ({ onOpenVoiceAgent }) => {
     updateOrderItems, 
     sendCustomerMessage, 
     isTranslating, 
-    speakText 
+    speakText,
+    language = 'en',
+    setLanguage,
+    t = (k) => k,
+    SUPPORTED_LANGUAGES = [],
+    triggerVisualAlert
   } = useApp();
 
+  const commUI = DIRECT_COMM_UI[language] || DIRECT_COMM_UI.en;
   const [inputText, setInputText] = useState("");
-  const [custLanguage, setCustLanguage] = useState(SUPPORTED_LANGUAGES[0]);
+  const custLanguage = SUPPORTED_LANGUAGES.find(l => l.code === language) || SUPPORTED_LANGUAGES[0];
   const [isListening, setIsListening] = useState(false);
+  const [langToast, setLangToast] = useState(null);
 
   // Custom Address Form State
   const [showAddressManager, setShowAddressManager] = useState(false);
@@ -94,11 +104,21 @@ export const CustomerTracker = ({ onOpenVoiceAgent }) => {
     setShowProfileEditor(false);
   };
 
+  const handleLanguageChange = (newLangCode) => {
+    setLanguage(newLangCode);
+    if (triggerVisualAlert) triggerVisualAlert('cyan');
+    const selectedLangObj = SUPPORTED_LANGUAGES.find(l => l.code === newLangCode);
+    const toastMsg = `🌐 ${selectedLangObj?.flag || ''} Communication translated to ${selectedLangObj?.nativeName || newLangCode}`;
+    setLangToast(toastMsg);
+    setTimeout(() => setLangToast(null), 3000);
+    confetti({ particleCount: 30, spread: 50 });
+  };
+
   const handleVoiceRecording = () => {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       const recognition = new SpeechRecognition();
-      recognition.lang = custLanguage.code === 'es' ? 'es-ES' : custLanguage.code === 'fr' ? 'fr-FR' : 'en-US';
+      recognition.lang = LANG_LOCALES[language] || 'en-US';
       recognition.onstart = () => setIsListening(true);
       recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
@@ -116,9 +136,13 @@ export const CustomerTracker = ({ onOpenVoiceAgent }) => {
     }
   };
 
-  const handleQuickCustomerPrompt = (promptText) => {
-    sendCustomerMessage(promptText);
-    speakText(`AI Voice Assistant: Translating your request "${promptText}" to visual 3D sign language for rider Alex.`);
+  const handleQuickCustomerPrompt = (promptKey, defaultText) => {
+    const promptTranslations = getPromptTranslations(promptKey);
+    const activeText = promptTranslations[language] || defaultText;
+    sendCustomerMessage(activeText, promptTranslations);
+    if (speakText) {
+      speakText(activeText, language);
+    }
   };
 
   return (
@@ -300,8 +324,8 @@ export const CustomerTracker = ({ onOpenVoiceAgent }) => {
           <div className="flex items-center gap-4">
             <div className="relative">
               <img 
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80" 
-                alt="Rider Alex Rivera" 
+                src={order.riderInfo?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"} 
+                alt={order.riderInfo?.name || "Rider"} 
                 className="w-16 h-16 rounded-2xl object-cover border-2 border-cyan-400 shadow-lg"
               />
               <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-cyan-500 border-2 border-slate-900 flex items-center justify-center text-xs">
@@ -311,16 +335,21 @@ export const CustomerTracker = ({ onOpenVoiceAgent }) => {
 
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-extrabold text-white">Alex Rivera</h2>
+                <h2 className="text-xl font-extrabold text-white">{order.riderInfo?.name || 'Alex Rivera'}</h2>
                 <span className="bg-cyan-500/20 text-cyan-300 text-xs font-bold px-2 py-0.5 rounded border border-cyan-500/40">
-                  {order.riderInfo.rating}
+                  {order.riderInfo?.rating || '4.98 ⭐'}
                 </span>
               </div>
-              <p className="text-xs text-slate-300 font-medium">{order.riderInfo.deliveriesCount} Successful Deliveries</p>
+              <p className="text-xs text-slate-300 font-medium">
+                {order.riderInfo?.vehicle ? `${order.riderInfo.vehicle} • ` : ''}
+                {order.riderInfo?.deliveriesCount || '1,420+'} Successful Deliveries
+              </p>
 
               <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-cyan-950 border border-cyan-500/50 rounded-xl text-xs text-cyan-200 font-bold">
                 <Sparkles className="w-4 h-4 text-cyan-400 animate-pulse" />
-                <span>Deaf / Non-Verbal Partner. Real-Time Sign Assist Active!</span>
+                <span>
+                  {order.riderInfo?.isDeafMute ? 'Deaf / Non-Verbal Partner. Real-Time Sign Assist Active!' : 'Verified Courier Pro'}
+                </span>
               </div>
             </div>
           </div>
@@ -334,6 +363,14 @@ export const CustomerTracker = ({ onOpenVoiceAgent }) => {
               <span>Talk to AI Voice Agent 🤖📞</span>
             </button>
             <span className="text-xs text-slate-400 font-mono">ETA: <strong className="text-emerald-400 text-sm">{order.deliveryEta}</strong></span>
+            <button
+              onClick={() => openTransferModal('rider')}
+              className="px-3 py-1.5 bg-slate-950 hover:bg-slate-800 text-amber-300 border border-amber-500/40 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow"
+              title="Request reassigning order to closer nearby courier"
+            >
+              <ArrowRightLeft className="w-3.5 h-3.5 text-amber-400" />
+              <span>Switch Courier 🔄</span>
+            </button>
           </div>
         </div>
       </div>
@@ -366,10 +403,10 @@ export const CustomerTracker = ({ onOpenVoiceAgent }) => {
 
         <div className="grid grid-cols-4 gap-2 text-center text-xs font-bold">
           {[
-            { label: 'Confirmed', active: true },
-            { label: 'Preparing', active: true },
-            { label: 'On The Way', active: order.status === 'en_route' || order.status === 'arrived' || order.status === 'delivered' },
-            { label: 'Delivered', active: order.status === 'delivered' }
+            { label: t('order_status_pickup', 'Preparing'), active: true },
+            { label: t('order_status_en_route', 'On The Way'), active: order.status === 'en_route' || order.status === 'arrived' || order.status === 'delivered' },
+            { label: t('order_status_arrived', 'Arrived'), active: order.status === 'arrived' || order.status === 'delivered' },
+            { label: t('order_status_delivered', 'Delivered'), active: order.status === 'delivered' }
           ].map((step, idx) => (
             <div key={idx} className="space-y-1">
               <div className={`h-2 rounded-full transition-all ${step.active ? 'bg-gradient-to-r from-cyan-400 to-emerald-400 shadow-md' : 'bg-slate-800'}`} />
@@ -380,26 +417,40 @@ export const CustomerTracker = ({ onOpenVoiceAgent }) => {
       </div>
 
       {/* DIRECT CHAT WITH RIDER */}
-      <div className="glass-panel rounded-3xl p-6 border-2 border-slate-800 bg-slate-900/95 space-y-4 shadow-xl">
+      <div className="glass-panel rounded-3xl p-6 border-2 border-slate-800 bg-slate-900/95 space-y-4 shadow-xl relative overflow-hidden">
+        {/* Language Change Toast Notification */}
+        {langToast && (
+          <div className="p-2.5 bg-gradient-to-r from-cyan-900/90 to-emerald-900/90 border border-cyan-400 text-cyan-100 rounded-2xl text-xs font-bold text-center flex items-center justify-center gap-2 animate-fadeIn shadow-lg">
+            <span>{langToast}</span>
+          </div>
+        )}
+
         <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-          <div className="flex items-center gap-2">
-            <MessageSquare className="w-5 h-5 text-cyan-400" />
-            <h3 className="font-bold text-white text-base">Direct Customer-Rider Communication</h3>
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-cyan-500/10 text-cyan-400 rounded-xl border border-cyan-500/20 shadow-inner">
+              <MessageSquare className="w-5 h-5 text-cyan-400" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-white text-base leading-tight">
+                {commUI.title}
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                {commUI.subtitle}
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 bg-slate-950 px-3 py-1 rounded-xl border border-slate-800">
+          <div className="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-2xl border border-cyan-500/40 shadow-inner">
             <Globe className="w-4 h-4 text-cyan-400" />
             <select
-              value={custLanguage.code}
-              onChange={(e) => {
-                const found = SUPPORTED_LANGUAGES.find(l => l.code === e.target.value);
-                if (found) setCustLanguage(found);
-              }}
+              value={language}
+              onChange={(e) => handleLanguageChange(e.target.value)}
               className="bg-transparent text-xs font-bold text-slate-200 focus:outline-none cursor-pointer"
+              title="Select direct communication language"
             >
               {SUPPORTED_LANGUAGES.map((l) => (
                 <option key={l.code} value={l.code} className="bg-slate-900 text-white">
-                  My Language: {l.name}
+                  {l.flag} {l.nativeName || l.name}
                 </option>
               ))}
             </select>
@@ -409,61 +460,82 @@ export const CustomerTracker = ({ onOpenVoiceAgent }) => {
         {isTranslating && (
           <div className="p-3 bg-cyan-950/80 border border-cyan-500/60 rounded-2xl flex items-center gap-3 animate-pulse text-cyan-200 text-xs font-bold">
             <Sparkles className="w-5 h-5 text-cyan-400" />
-            <span>Translating message to visual 3D sign language for rider Alex...</span>
+            <span>{commUI.translating_notice}</span>
           </div>
         )}
 
         <div className="bg-slate-950 rounded-2xl p-4 border border-slate-800 space-y-3 min-h-[200px] max-h-[300px] overflow-y-auto">
-          {order.chatMessages.map((msg) => (
-            <div 
-              key={msg.id}
-              className={`p-3 rounded-2xl text-xs space-y-1 ${
-                msg.sender === 'customer'
-                  ? 'bg-cyan-950/70 border border-cyan-800 text-cyan-100 ml-8'
-                  : msg.sender === 'rider'
-                  ? 'bg-emerald-950/70 border border-emerald-800 text-emerald-100 mr-8'
-                  : 'bg-slate-900 border border-slate-800 text-slate-400 text-center italic'
-              }`}
-            >
-              <div className="flex justify-between items-center font-bold text-[10px] opacity-75">
-                <span>{msg.sender === 'customer' ? '👤 You' : msg.sender === 'rider' ? '🤟 Rider Alex' : '⚙️ System Notice'}</span>
-                <span>{msg.timestamp}</span>
-              </div>
-              
-              <p className="text-sm font-medium">{msg.text}</p>
+          {order.chatMessages.map((msg) => {
+            const messageText = translateChatMessage(msg, language);
+            const senderLabel = msg.sender === 'customer' 
+              ? commUI.sender_you 
+              : msg.sender === 'rider' 
+              ? commUI.sender_rider 
+              : commUI.sender_system;
 
-              {msg.sender === 'rider' && (
-                <div className="pt-1 flex items-center justify-between border-t border-emerald-900/60">
-                  <span className="text-[10px] text-emerald-400 font-mono">Sign ➔ Voice Audio</span>
-                  <button
-                    onClick={() => speakText(msg.text)}
-                    className="text-[11px] text-emerald-300 hover:text-white font-bold flex items-center gap-1 bg-emerald-900/60 px-2 py-0.5 rounded border border-emerald-700"
-                  >
-                    <Volume2 className="w-3.5 h-3.5" /> Listen Aloud
-                  </button>
+            return (
+              <div 
+                key={msg.id}
+                className={`p-3.5 rounded-2xl text-xs space-y-1.5 transition-all duration-300 ${
+                  msg.sender === 'customer'
+                    ? 'bg-cyan-950/70 border border-cyan-800 text-cyan-100 ml-6'
+                    : msg.sender === 'rider'
+                    ? 'bg-emerald-950/70 border border-emerald-800 text-emerald-100 mr-6'
+                    : 'bg-slate-900 border border-slate-800 text-slate-300 text-center italic'
+                }`}
+              >
+                <div className="flex justify-between items-center font-bold text-[10px] opacity-75">
+                  <span className="flex items-center gap-1.5">{senderLabel}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] font-mono bg-slate-900/90 px-1.5 py-0.5 rounded border border-slate-800 text-slate-400">
+                      {custLanguage.flag} {custLanguage.nativeName}
+                    </span>
+                    <span>{msg.timestamp}</span>
+                  </div>
                 </div>
-              )}
-            </div>
-          ))}
+                
+                <p className="text-sm font-medium leading-relaxed">{messageText}</p>
+
+                {msg.sender === 'rider' && (
+                  <div className="pt-1.5 flex items-center justify-between border-t border-emerald-900/60">
+                    <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
+                      <span>🤟</span> {commUI.sign_to_voice}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => speakText(messageText, language)}
+                      className="text-[11px] text-emerald-300 hover:text-white font-bold flex items-center gap-1 bg-emerald-900/70 hover:bg-emerald-800 px-2.5 py-1 rounded-lg border border-emerald-700 transition shadow-sm"
+                      title={commUI.listen_aloud}
+                    >
+                      <Volume2 className="w-3.5 h-3.5" /> {commUI.listen_aloud}
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* Quick Customer Voice & Sign Prompts */}
         <div className="pt-2 border-t border-slate-800 space-y-2">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">1-Tap Customer Prompts:</span>
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+              {commUI.quick_prompts_title}:
+            </span>
+            <span className="text-[10px] text-cyan-400 font-bold bg-cyan-950/80 px-2 py-0.5 rounded-lg border border-cyan-800">
+              {custLanguage.flag} {custLanguage.nativeName}
+            </span>
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {[
-              { label: '🚪 Leave on front porch', text: 'Please leave the order safely on the front porch.' },
-              { label: '🔢 Ring Gate Code 4022', text: 'Gate code is 4022, please ring unit 4B.' },
-              { label: '🐶 Friendly dog in yard', text: 'Friendly dog in yard, please leave at gate.' },
-              { label: '📅 Reschedule delivery time', text: 'Can we confirm delivery in 15 minutes?' }
-            ].map((p, idx) => (
+            {commUI.prompts.map((p) => (
               <button
-                key={idx}
+                key={p.key}
                 type="button"
-                onClick={() => handleQuickCustomerPrompt(p.text)}
-                className="p-2 bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500 rounded-xl text-xs text-left transition font-semibold text-slate-300 truncate"
+                onClick={() => handleQuickCustomerPrompt(p.key, p.text)}
+                className="p-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500 rounded-xl text-xs text-left transition font-semibold text-slate-300 truncate group shadow-sm"
+                title={p.text}
               >
-                {p.label}
+                <span className="group-hover:text-cyan-300 transition">{p.label}</span>
               </button>
             ))}
           </div>
@@ -479,7 +551,7 @@ export const CustomerTracker = ({ onOpenVoiceAgent }) => {
                 ? 'bg-red-500 text-white border-red-400 animate-bounce'
                 : 'bg-slate-950 hover:bg-slate-800 text-cyan-400 border-slate-800'
             }`}
-            title="Speech-to-Text Voice Input"
+            title={commUI.voice_title}
           >
             <Mic className="w-5 h-5" />
           </button>
@@ -488,15 +560,15 @@ export const CustomerTracker = ({ onOpenVoiceAgent }) => {
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder={isListening ? "Listening to your voice..." : `Type your message in ${custLanguage.name}...`}
-            className="flex-1 px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-sm text-white focus:border-cyan-400 focus:outline-none"
+            placeholder={isListening ? commUI.voice_listening : commUI.input_placeholder}
+            className="flex-1 px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-sm text-white focus:border-cyan-400 focus:outline-none placeholder:text-slate-500"
           />
 
           <button
             type="submit"
             className="px-6 py-3 bg-gradient-to-r from-cyan-400 to-emerald-400 text-slate-950 font-extrabold text-sm rounded-2xl shadow-lg hover:brightness-110 transition flex items-center gap-2"
           >
-            <span>Send</span>
+            <span>{commUI.send_btn}</span>
             <Send className="w-4 h-4" />
           </button>
         </form>

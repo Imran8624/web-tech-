@@ -12,9 +12,10 @@ import { AuthLoginView } from './views/AuthLoginView';
 import { AdminDashboard } from './views/AdminDashboard';
 
 import { NotificationCenter, NotificationToast } from './components/NotificationCenter';
+import { TransferOrderModal } from './components/TransferOrderModal';
 
 const MainLayout = () => {
-  const { currentView } = useApp();
+  const { currentView, transferModalState, closeTransferModal } = useApp();
   const [isAccessibilityOpen, setIsAccessibilityOpen] = useState(false);
   const [isVoiceAgentOpen, setIsVoiceAgentOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -59,6 +60,13 @@ const MainLayout = () => {
       <AIVoiceCallAgent
         isOpen={isVoiceAgentOpen}
         onClose={() => setIsVoiceAgentOpen(false)}
+      />
+
+      {/* Global Order Transfer to Nearby Rider Modal */}
+      <TransferOrderModal
+        isOpen={transferModalState.isOpen}
+        onClose={closeTransferModal}
+        initiatedBy={transferModalState.initiatedBy}
       />
     </div>
   );

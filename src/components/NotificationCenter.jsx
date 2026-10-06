@@ -110,7 +110,9 @@ export const NotificationCenter = ({ isOpen, onClose }) => {
     order,
     notifyOrderAppeared,
     notifyOrderReady,
-    updateOrderStatus
+    updateOrderStatus,
+    t,
+    language
   } = useApp();
 
   const [filterRole, setFilterRole] = useState('ALL');
@@ -180,17 +182,22 @@ export const NotificationCenter = ({ isOpen, onClose }) => {
         {/* Filter Tabs by Target Role */}
         <div className="flex items-center justify-between gap-2 flex-wrap flex-shrink-0">
           <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-bold gap-1">
-            {['ALL', 'MERCHANT', 'RIDER', 'CUSTOMER'].map(role => (
+            {[
+              { id: 'ALL', label: t('all', 'ALL') },
+              { id: 'MERCHANT', label: t('merchantSector', 'Merchant') },
+              { id: 'RIDER', label: t('riderSector', 'Rider') },
+              { id: 'CUSTOMER', label: t('customerSector', 'Customer') }
+            ].map(tab => (
               <button
-                key={role}
-                onClick={() => setFilterRole(role)}
+                key={tab.id}
+                onClick={() => setFilterRole(tab.id)}
                 className={`py-1.5 px-3 rounded-lg transition ${
-                  filterRole === role
+                  filterRole === tab.id
                     ? 'bg-cyan-500 text-slate-950 font-extrabold shadow'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                {role}
+                {tab.label}
               </button>
             ))}
           </div>
@@ -202,7 +209,7 @@ export const NotificationCenter = ({ isOpen, onClose }) => {
               title="Mark all as read"
             >
               <CheckCheck className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Mark All Read</span>
+              <span>{t('markAllRead', 'Mark All Read')}</span>
             </button>
 
             <button

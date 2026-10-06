@@ -25,7 +25,15 @@ import {
 import confetti from 'canvas-confetti';
 
 export const LandingPage = () => {
-  const { setCurrentView, triggerVisualAlert, speakText } = useApp();
+  const { 
+    setCurrentView, 
+    triggerVisualAlert, 
+    speakText,
+    language = 'en',
+    setLanguage,
+    t = (k) => k,
+    SUPPORTED_LANGUAGES = []
+  } = useApp();
   const [activeDemoSign, setActiveDemoSign] = useState("HELLO");
   const [typedPhrase, setTypedPhrase] = useState("Hi Alex! Gate code is 4022. Please leave at door.");
   const [onboardRole, setOnboardRole] = useState(null); // 'rider' | 'merchant' | null
@@ -71,20 +79,15 @@ export const LandingPage = () => {
               
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold uppercase tracking-wider">
                 <Sparkles className="w-4 h-4 text-cyan-400" />
-                <span>Next-Gen Accessibility Platform</span>
+                <span>{t('landing_badge', 'Next-Gen Accessibility Platform')}</span>
               </div>
 
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-tight">
-                Inclusive Deliveries, <br />
-                <span className="bg-gradient-to-r from-cyan-400 via-emerald-300 to-cyan-200 bg-clip-text text-transparent">
-                  Barrier-Free Communication.
-                </span>
+                {t('landing_hero_title', 'Inclusive Deliveries, Barrier-Free Communication.')}
               </h1>
 
               <p className="text-lg text-slate-300 max-w-2xl font-medium leading-relaxed">
-                Empowering Deaf, Hard of Hearing, and Mute delivery partners with real-time 
-                <strong className="text-cyan-300"> 3D AI Sign Avatars</strong>, instant visual action cards, 
-                and screen-flash sensory alerts for flawless customer and restaurant handoffs.
+                {t('landing_hero_desc', 'Empowering Deaf, Hard of Hearing, and Mute delivery partners with real-time 3D AI Sign Avatars, visual action cards, and smart sensory alerts.')}
               </p>
 
               {/* CTAs */}
@@ -94,16 +97,16 @@ export const LandingPage = () => {
                   className="px-8 py-4 bg-gradient-to-r from-cyan-400 via-cyan-500 to-emerald-400 text-slate-950 font-extrabold rounded-2xl shadow-xl shadow-cyan-500/25 hover:scale-105 active:scale-95 transition flex items-center gap-3 group text-base"
                 >
                   <Smartphone className="w-5 h-5 text-slate-950" />
-                  <span>Launch Rider App Demo</span>
+                  <span>{t('landing_cta_rider', 'Launch Rider App Demo')}</span>
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition" />
                 </button>
 
                 <button
-                  onClick={() => setOnboardRole('rider')}
+                  onClick={() => setCurrentView('customer')}
                   className="px-6 py-4 bg-slate-900 hover:bg-slate-800 border-2 border-slate-700 hover:border-cyan-400 text-white font-bold rounded-2xl transition flex items-center gap-2 text-base"
                 >
                   <HeartHandshake className="w-5 h-5 text-cyan-400" />
-                  <span>Join as Rider</span>
+                  <span>{t('landing_cta_track', 'Track Active Delivery')}</span>
                 </button>
               </div>
 

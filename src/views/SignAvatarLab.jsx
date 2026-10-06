@@ -18,10 +18,21 @@ import {
 } from 'lucide-react';
 
 export const SignAvatarLab = () => {
-  const { signSpeed, setSignSpeed, speakText, triggerVisualAlert, avatarMode, setAvatarMode } = useApp();
+  const { 
+    signSpeed, 
+    setSignSpeed, 
+    speakText, 
+    triggerVisualAlert, 
+    avatarMode, 
+    setAvatarMode,
+    language = 'en',
+    setLanguage,
+    t = (k) => k,
+    SUPPORTED_LANGUAGES = []
+  } = useApp();
   const [activeSignKey, setActiveSignKey] = useState("HELLO");
-  const [customText, setCustomText] = useState("Please leave food at door, gate code 4022.");
-  const [selectedLang, setSelectedLang] = useState(SUPPORTED_LANGUAGES[0]);
+  const selectedLang = SUPPORTED_LANGUAGES.find(l => l.code === language) || SUPPORTED_LANGUAGES[0];
+  const [customText, setCustomText] = useState(selectedLang.sampleMsg || "Please leave food at door, gate code 4022.");
   const [isTranslating, setIsTranslating] = useState(false);
 
   const handleTranslateCustom = (e) => {
@@ -31,20 +42,20 @@ export const SignAvatarLab = () => {
     setIsTranslating(true);
     triggerVisualAlert('cyan');
 
-    // Simple keyword matcher for sign key mapping
+    // Keyword matcher for sign key mapping across supported languages
     const lower = customText.toLowerCase();
     let matchedKey = "HELLO";
-    if (lower.includes("leave") || lower.includes("door") || lower.includes("deje") || lower.includes("porte") || lower.includes("ドア")) {
+    if (lower.includes("leave") || lower.includes("door") || lower.includes("deje") || lower.includes("porte") || lower.includes("ドア") || lower.includes("ಬಾಗಿಲಿನಲ್ಲಿ") || lower.includes("दरवाजे") || lower.includes("门口") || lower.includes("الباب")) {
       matchedKey = "LEAVE AT DOOR";
-    } else if (lower.includes("code") || lower.includes("gate") || lower.includes("keypad") || lower.includes("código")) {
+    } else if (lower.includes("code") || lower.includes("gate") || lower.includes("keypad") || lower.includes("código") || lower.includes("ಗೇಟ್") || lower.includes("गेट") || lower.includes("门禁") || lower.includes("البوابة")) {
       matchedKey = "GATE CODE";
-    } else if (lower.includes("food") || lower.includes("picked") || lower.includes("bag") || lower.includes("comida")) {
+    } else if (lower.includes("food") || lower.includes("picked") || lower.includes("bag") || lower.includes("comida") || lower.includes("ಆಹಾರ") || lower.includes("खाना") || lower.includes("食物") || lower.includes("الطعام")) {
       matchedKey = "FOOD PICKED UP";
-    } else if (lower.includes("outside") || lower.includes("arrived") || lower.includes("afuera") || lower.includes("arrivé")) {
+    } else if (lower.includes("outside") || lower.includes("arrived") || lower.includes("afuera") || lower.includes("arrivé") || lower.includes("ಹೊರಗೆ") || lower.includes("बाहर") || lower.includes("到达") || lower.includes("وصلت")) {
       matchedKey = "I AM OUTSIDE";
-    } else if (lower.includes("traffic") || lower.includes("delay") || lower.includes("retardo") || lower.includes("渋滞")) {
+    } else if (lower.includes("traffic") || lower.includes("delay") || lower.includes("retardo") || lower.includes("渋滞") || lower.includes("ಟ್ರಾಫಿಕ್") || lower.includes("ट्रैफिक") || lower.includes("堵") || lower.includes("زحام")) {
       matchedKey = "TRAFFIC DELAY";
-    } else if (lower.includes("thank") || lower.includes("gracias") || lower.includes("merci") || lower.includes("感謝")) {
+    } else if (lower.includes("thank") || lower.includes("gracias") || lower.includes("merci") || lower.includes("感謝") || lower.includes("ಧನ್ಯವಾದ") || lower.includes("धन्यवाद") || lower.includes("谢谢") || lower.includes("شكرا")) {
       matchedKey = "THANK YOU";
     }
 
@@ -52,7 +63,7 @@ export const SignAvatarLab = () => {
 
     setTimeout(() => {
       setIsTranslating(false);
-      speakText(`Translated ${selectedLang.name} phrase into sign animation ${matchedKey}`);
+      speakText(`Translated phrase into sign animation ${matchedKey}`);
     }, 800);
   };
 
@@ -127,13 +138,13 @@ export const SignAvatarLab = () => {
 
             {/* Language Selector */}
             <div>
-              <label className="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider">Select Input Language</label>
+              <label className="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider">{t('language_select', 'Select Input Language')}</label>
               <select
-                value={selectedLang.code}
+                value={language}
                 onChange={(e) => {
+                  setLanguage(e.target.value);
                   const found = SUPPORTED_LANGUAGES.find(l => l.code === e.target.value);
                   if (found) {
-                    setSelectedLang(found);
                     setCustomText(found.sampleMsg);
                   }
                 }}
@@ -141,7 +152,7 @@ export const SignAvatarLab = () => {
               >
                 {SUPPORTED_LANGUAGES.map((l) => (
                   <option key={l.code} value={l.code} className="bg-slate-900 text-white">
-                    {l.name}
+                    {l.flag} {l.nativeName || l.name}
                   </option>
                 ))}
               </select>

@@ -1,13 +1,13 @@
 export const SUPPORTED_LANGUAGES = [
-  { code: 'en', name: 'English 🇺🇸', flag: '🇺🇸', sampleMsg: 'Please leave the food at the front door and ring bell.' },
-  { code: 'kn', name: 'Kannada 🇮🇳 (ಕನ್ನಡ)', flag: '🇮🇳', sampleMsg: 'ದಯವಿಟ್ಟು ಆಹಾರವನ್ನು ಬಾಗಿಲಿನಲ್ಲಿ ಬಿಟ್ಟು ಗಂಟೆ ಬಾರಿಸಿ.' },
-  { code: 'es', name: 'Spanish 🇪🇸', sampleMsg: 'Por favor deje la comida en la puerta y llame al timbre.' },
-  { code: 'fr', name: 'French 🇫🇷', sampleMsg: 'Veuillez laisser la nourriture à la porte et sonner.' },
-  { code: 'de', name: 'German 🇩🇪', sampleMsg: 'Bitte das Essen vor der Tür ablegen und klingeln.' },
-  { code: 'ja', name: 'Japanese 🇯🇵', sampleMsg: 'ドアの前に食べ物を置いてベルを鳴らしてください。' },
-  { code: 'zh', name: 'Chinese 🇨🇳', sampleMsg: '请将食物放在门口并按门铃。' },
-  { code: 'hi', name: 'Hindi 🇮🇳', sampleMsg: 'कृपया खाना दरवाजे पर छोड़ दें और घंटी बजाएं।' },
-  { code: 'ar', name: 'Arabic 🇸🇦', sampleMsg: 'يرجى ترك الطعام عند الباب والاتصال بالجرس.' }
+  { code: 'en', name: 'English 🇺🇸', flag: '🇺🇸', nativeName: 'English', sampleMsg: 'Please leave the food at the front door and ring bell.' },
+  { code: 'kn', name: 'Kannada 🇮🇳 (ಕನ್ನಡ)', flag: '🇮🇳', nativeName: 'ಕನ್ನಡ', sampleMsg: 'ದಯವಿಟ್ಟು ಆಹಾರವನ್ನು ಬಾಗಿಲಿನಲ್ಲಿ ಬಿಟ್ಟು ಗಂಟೆ ಬಾರಿಸಿ.' },
+  { code: 'es', name: 'Spanish 🇪🇸 (Español)', flag: '🇪🇸', nativeName: 'Español', sampleMsg: 'Por favor deje la comida en la puerta y llame al timbre.' },
+  { code: 'fr', name: 'French 🇫🇷 (Français)', flag: '🇫🇷', nativeName: 'Français', sampleMsg: 'Veuillez laisser la nourriture à la porte et sonner.' },
+  { code: 'de', name: 'German 🇩🇪 (Deutsch)', flag: '🇩🇪', nativeName: 'Deutsch', sampleMsg: 'Bitte das Essen vor der Tür ablegen und klingeln.' },
+  { code: 'ja', name: 'Japanese 🇯🇵 (日本語)', flag: '🇯🇵', nativeName: '日本語', sampleMsg: 'ドアの前に食べ物を置いてベルを鳴らしてください。' },
+  { code: 'zh', name: 'Chinese 🇨🇳 (中文)', flag: '🇨🇳', nativeName: '中文', sampleMsg: '请将食物放在门口并按门铃。' },
+  { code: 'hi', name: 'Hindi 🇮🇳 (हिन्दी)', flag: '🇮🇳', nativeName: 'हिन्दी', sampleMsg: 'कृपया खाना दरवाजे पर छोड़ दें और घंटी बजाएं।' },
+  { code: 'ar', name: 'Arabic 🇸🇦 (العربية)', flag: '🇸🇦', nativeName: 'العربية', sampleMsg: 'يرجى ترك الطعام عند الباب والاتصال بالجرس.' }
 ];
 
 export const RIDER_QUICK_SIGNS = [

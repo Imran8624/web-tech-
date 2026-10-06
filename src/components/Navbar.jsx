@@ -19,11 +19,23 @@ import {
   LogOut,
   User,
   Bell,
-  Palette
+  Palette,
+  Globe,
+  ArrowRightLeft
 } from 'lucide-react';
 
 export const Navbar = ({ onOpenAccessibility, onOpenVoiceAgent, onOpenNotifications }) => {
-  const { currentView, setCurrentView, theme, setTheme, notificationsList = [] } = useApp();
+  const { 
+    currentView, 
+    setCurrentView, 
+    theme, 
+    notificationsList = [],
+    language = 'en',
+    setLanguage,
+    t = (k) => k,
+    SUPPORTED_LANGUAGES = [],
+    openTransferModal
+  } = useApp();
   const unreadCount = notificationsList.filter(n => !n.isRead).length;
 
   return (
@@ -42,10 +54,10 @@ export const Navbar = ({ onOpenAccessibility, onOpenVoiceAgent, onOpenNotificati
           </div>
           <div className="text-left hidden sm:block">
             <div className="flex items-center gap-1.5">
-              <span className="font-extrabold text-lg tracking-tight text-white font-sans">SignShift</span>
+              <span className="font-extrabold text-lg tracking-tight text-white font-sans">{t('app_title', 'SignShift')}</span>
               <span className="text-xs bg-cyan-500/20 text-cyan-400 font-bold px-1.5 py-0.5 rounded border border-cyan-500/30 uppercase tracking-wider">Delivery</span>
             </div>
-            <p className="text-[11px] text-slate-400 font-medium">Barrier-Free Delivery Platform</p>
+            <p className="text-[11px] text-slate-400 font-medium">{t('app_tagline', 'Barrier-Free Delivery Platform')}</p>
           </div>
         </button>
 
@@ -60,7 +72,7 @@ export const Navbar = ({ onOpenAccessibility, onOpenVoiceAgent, onOpenNotificati
             }`}
           >
             <Home className="w-4 h-4" />
-            <span className="hidden md:inline">Landing</span>
+            <span className="hidden md:inline">{t('nav_landing', 'Landing')}</span>
           </button>
 
           <button
@@ -72,7 +84,7 @@ export const Navbar = ({ onOpenAccessibility, onOpenVoiceAgent, onOpenNotificati
             }`}
           >
             <Smartphone className="w-4 h-4 text-cyan-400" />
-            <span>Rider App</span>
+            <span>{t('nav_rider', 'Rider App')}</span>
           </button>
 
           <button
@@ -84,7 +96,7 @@ export const Navbar = ({ onOpenAccessibility, onOpenVoiceAgent, onOpenNotificati
             }`}
           >
             <Package className="w-4 h-4 text-emerald-400" />
-            <span>Customer View</span>
+            <span>{t('nav_customer', 'Customer View')}</span>
           </button>
 
           <button
@@ -96,7 +108,7 @@ export const Navbar = ({ onOpenAccessibility, onOpenVoiceAgent, onOpenNotificati
             }`}
           >
             <Store className="w-4 h-4 text-amber-400" />
-            <span className="hidden lg:inline">Merchant</span>
+            <span className="hidden lg:inline">{t('nav_merchant', 'Merchant')}</span>
           </button>
 
           <button
@@ -108,7 +120,7 @@ export const Navbar = ({ onOpenAccessibility, onOpenVoiceAgent, onOpenNotificati
             }`}
           >
             <Bot className="w-4 h-4 text-purple-400" />
-            <span className="hidden xl:inline">Sign Studio</span>
+            <span className="hidden xl:inline">{t('nav_sign_lab', 'Sign Studio')}</span>
           </button>
 
           <button
@@ -120,7 +132,7 @@ export const Navbar = ({ onOpenAccessibility, onOpenVoiceAgent, onOpenNotificati
             }`}
           >
             <ShieldCheck className="w-4 h-4 text-purple-400" />
-            <span className="hidden xl:inline">Admin Hub</span>
+            <span className="hidden xl:inline">{t('nav_admin', 'Admin Hub')}</span>
           </button>
 
           <button
@@ -132,12 +144,30 @@ export const Navbar = ({ onOpenAccessibility, onOpenVoiceAgent, onOpenNotificati
             }`}
           >
             <Lock className="w-4 h-4 text-cyan-400" />
-            <span>Login</span>
+            <span>{t('nav_login', 'Login')}</span>
           </button>
         </nav>
 
-        {/* Right Accessibility & AI Voice Agent Quick Controls */}
+        {/* Right Accessibility & Language & AI Voice Agent Quick Controls */}
         <div className="flex items-center gap-2">
+          {/* Global Multi-Language Selector Dropdown */}
+          <div className="relative flex items-center bg-slate-900 border border-slate-700/80 hover:border-cyan-400 rounded-xl px-2.5 py-1.5 transition shadow-sm">
+            <Globe className="w-4 h-4 text-cyan-400 mr-1.5 flex-shrink-0" />
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              className="bg-transparent text-xs font-extrabold text-cyan-300 focus:outline-none cursor-pointer pr-1"
+              title="Change language across all sectors"
+              aria-label="Select Application Language"
+            >
+              {SUPPORTED_LANGUAGES.map((lang) => (
+                <option key={lang.code} value={lang.code} className="bg-slate-900 text-slate-100 font-semibold">
+                  {lang.flag} {lang.nativeName || lang.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* AI Voice Call Agent Trigger Button */}
           <button
             onClick={onOpenVoiceAgent}
@@ -145,7 +175,7 @@ export const Navbar = ({ onOpenAccessibility, onOpenVoiceAgent, onOpenNotificati
             title="Launch AI Voice Dispatch Agent (Call customer & schedule appointment)"
           >
             <PhoneCall className="w-4 h-4 text-slate-950" />
-            <span className="hidden sm:inline">AI Voice Agent</span>
+            <span className="hidden sm:inline">{t('nav_voice_agent', 'AI Voice Agent')}</span>
           </button>
 
           {/* Theme & Sector Color Studio Trigger */}

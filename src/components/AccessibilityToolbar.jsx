@@ -28,7 +28,8 @@ import {
   ZoomIn,
   ZoomOut,
   AlignLeft,
-  BookOpen
+  BookOpen,
+  Globe
 } from 'lucide-react';
 
 export const AccessibilityToolbar = ({ isOpen, onClose }) => {
@@ -63,7 +64,11 @@ export const AccessibilityToolbar = ({ isOpen, onClose }) => {
     flashAlerts,
     setFlashAlerts,
     triggerVisualAlert,
-    speakText
+    speakText,
+    language = 'en',
+    setLanguage,
+    t = (k) => k,
+    SUPPORTED_LANGUAGES = []
   } = useApp();
 
   const [activeTab, setActiveTab] = useState('display'); // Default to display/font or themes
@@ -170,8 +175,8 @@ export const AccessibilityToolbar = ({ isOpen, onClose }) => {
           <button
             onClick={() => setActiveTab('display')}
             className={`px-3.5 py-2 rounded-xl transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'display'
-                ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-md font-extrabold'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+              ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-md font-extrabold'
+              : 'text-slate-400 hover:text-white hover:bg-slate-900'
               }`}
           >
             <Type className="w-4 h-4" />
@@ -181,8 +186,8 @@ export const AccessibilityToolbar = ({ isOpen, onClose }) => {
           <button
             onClick={() => setActiveTab('themes')}
             className={`px-3.5 py-2 rounded-xl transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'themes'
-                ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-slate-950 shadow-md font-extrabold'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+              ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-slate-950 shadow-md font-extrabold'
+              : 'text-slate-400 hover:text-white hover:bg-slate-900'
               }`}
           >
             <Eye className="w-4 h-4" />
@@ -192,8 +197,8 @@ export const AccessibilityToolbar = ({ isOpen, onClose }) => {
           <button
             onClick={() => setActiveTab('sectors')}
             className={`px-3.5 py-2 rounded-xl transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'sectors'
-                ? 'bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 shadow-md font-extrabold'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+              ? 'bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 shadow-md font-extrabold'
+              : 'text-slate-400 hover:text-white hover:bg-slate-900'
               }`}
           >
             <Palette className="w-4 h-4" />
@@ -203,12 +208,23 @@ export const AccessibilityToolbar = ({ isOpen, onClose }) => {
           <button
             onClick={() => setActiveTab('alerts')}
             className={`px-3.5 py-2 rounded-xl transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'alerts'
-                ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-slate-950 shadow-md font-extrabold'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+              ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-slate-950 shadow-md font-extrabold'
+              : 'text-slate-400 hover:text-white hover:bg-slate-900'
               }`}
           >
             <Zap className="w-4 h-4" />
             <span>Sensory Alerts</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('language')}
+            className={`px-3.5 py-2 rounded-xl transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'language'
+              ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-md font-extrabold'
+              : 'text-slate-400 hover:text-white hover:bg-slate-900'
+              }`}
+          >
+            <Globe className="w-4 h-4" />
+            <span>Language / ಭಾಷೆ / Idioma ({SUPPORTED_LANGUAGES.find(l => l.code === language)?.flag || '🌐'})</span>
           </button>
         </div>
 
@@ -292,8 +308,8 @@ export const AccessibilityToolbar = ({ isOpen, onClose }) => {
                         key={f.id}
                         onClick={() => setFontSize(f.id)}
                         className={`p-3.5 rounded-2xl border text-left transition flex flex-col justify-between group ${isSelected
-                            ? 'border-emerald-400 bg-emerald-950/40 text-emerald-300 font-bold shadow-lg ring-2 ring-emerald-500/30'
-                            : 'border-slate-800 bg-slate-950 hover:border-slate-700 text-slate-300'
+                          ? 'border-emerald-400 bg-emerald-950/40 text-emerald-300 font-bold shadow-lg ring-2 ring-emerald-500/30'
+                          : 'border-slate-800 bg-slate-950 hover:border-slate-700 text-slate-300'
                           }`}
                       >
                         <div className="flex items-start justify-between mb-1.5">
@@ -335,8 +351,8 @@ export const AccessibilityToolbar = ({ isOpen, onClose }) => {
                         key={font.id}
                         onClick={() => setFontFamily(font.id)}
                         className={`p-2.5 rounded-xl border text-left transition ${fontFamily === font.id
-                            ? 'border-cyan-400 bg-cyan-950/40 text-cyan-200 font-bold'
-                            : 'border-slate-800 bg-slate-900 hover:border-slate-700 text-slate-400'
+                          ? 'border-cyan-400 bg-cyan-950/40 text-cyan-200 font-bold'
+                          : 'border-slate-800 bg-slate-900 hover:border-slate-700 text-slate-400'
                           }`}
                       >
                         <span className="block text-xs font-bold">{font.name}</span>
@@ -439,8 +455,8 @@ export const AccessibilityToolbar = ({ isOpen, onClose }) => {
                       key={t.id}
                       onClick={() => setTheme(t.id)}
                       className={`p-4 rounded-2xl border text-left transition flex flex-col justify-between group ${isSelected
-                          ? 'border-cyan-400 bg-cyan-950/40 text-cyan-100 ring-2 ring-cyan-500/40 shadow-xl'
-                          : 'border-slate-800 bg-slate-950/80 hover:border-slate-700 hover:bg-slate-950 text-slate-300'
+                        ? 'border-cyan-400 bg-cyan-950/40 text-cyan-100 ring-2 ring-cyan-500/40 shadow-xl'
+                        : 'border-slate-800 bg-slate-950/80 hover:border-slate-700 hover:bg-slate-950 text-slate-300'
                         }`}
                     >
                       <div className="flex items-start justify-between mb-2">
@@ -448,9 +464,9 @@ export const AccessibilityToolbar = ({ isOpen, onClose }) => {
                           <div className="flex items-center gap-2">
                             <span className="font-bold text-sm text-white">{t.name}</span>
                             <span className={`text-[10px] px-2 py-0.5 rounded-full font-extrabold uppercase tracking-wider ${t.id === 'neon' ? 'bg-cyan-500 text-slate-950' :
-                                t.id === 'solar-light' ? 'bg-amber-400 text-slate-950' :
-                                  t.id === 'oled-midnight' ? 'bg-emerald-500 text-slate-950' :
-                                    'bg-slate-800 text-slate-300'
+                              t.id === 'solar-light' ? 'bg-amber-400 text-slate-950' :
+                                t.id === 'oled-midnight' ? 'bg-emerald-500 text-slate-950' :
+                                  'bg-slate-800 text-slate-300'
                               }`}>
                               {t.badge}
                             </span>
@@ -680,8 +696,8 @@ export const AccessibilityToolbar = ({ isOpen, onClose }) => {
                             key={swatch}
                             onClick={() => updateSectorColor(sector.key, swatch)}
                             className={`w-5 h-5 rounded-md flex-shrink-0 transition-transform ${currentColor.toLowerCase() === swatch.toLowerCase()
-                                ? 'scale-125 ring-2 ring-white shadow-lg'
-                                : 'opacity-80 hover:opacity-100 hover:scale-110'
+                              ? 'scale-125 ring-2 ring-white shadow-lg'
+                              : 'opacity-80 hover:opacity-100 hover:scale-110'
                               }`}
                             style={{ backgroundColor: swatch }}
                             title={`Set to ${swatch}`}
@@ -774,6 +790,58 @@ export const AccessibilityToolbar = ({ isOpen, onClose }) => {
                     className="w-5 h-5 accent-purple-500 rounded cursor-pointer"
                   />
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* ==================== TAB 5: MULTI-LANGUAGE LOCALIZATION ==================== */}
+          {activeTab === 'language' && (
+            <div className="space-y-5">
+              <div>
+                <h3 className="text-sm font-bold text-slate-200 mb-1 flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-amber-400" /> Complete System Translation Across All Sectors
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Select a language to convert all sectors (Rider, Customer, Merchant, Admin, Sign Studio, and Navigation).
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {SUPPORTED_LANGUAGES.map((lang) => {
+                  const isSelected = language === lang.code;
+                  return (
+                    <button
+                      key={lang.code}
+                      onClick={() => {
+                        setLanguage(lang.code);
+                        triggerVisualAlert('cyan');
+                      }}
+                      className={`p-4 rounded-2xl border text-left transition flex flex-col justify-between group ${isSelected
+                        ? 'border-amber-400 bg-amber-950/40 text-amber-100 ring-2 ring-amber-500/40 shadow-xl'
+                        : 'border-slate-800 bg-slate-950/80 hover:border-slate-700 hover:bg-slate-950 text-slate-300'
+                        }`}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-2xl">{lang.flag}</span>
+                          <div>
+                            <span className="font-bold text-sm text-white block">{lang.nativeName || lang.name}</span>
+                            <span className="text-xs text-slate-400">{lang.name}</span>
+                          </div>
+                        </div>
+                        {isSelected && (
+                          <div className="p-1 rounded-full bg-amber-400 text-slate-950 shadow-md">
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="mt-2 pt-2 border-t border-slate-800/80">
+                        <span className="text-[10px] text-slate-500 font-mono block">Sample Translation:</span>
+                        <p className="text-xs text-slate-300 italic mt-0.5">{lang.sampleMsg}</p>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
