@@ -52,7 +52,10 @@ export const CustomerTracker = ({ onOpenVoiceAgent }) => {
     setLanguage,
     t = (k) => k,
     SUPPORTED_LANGUAGES = [],
-    triggerVisualAlert
+    triggerVisualAlert,
+    awardRiderCoins,
+    customerWallet,
+    awardCustomerCoins
   } = useApp();
 
   const commUI = DIRECT_COMM_UI[language] || DIRECT_COMM_UI.en;
@@ -60,6 +63,11 @@ export const CustomerTracker = ({ onOpenVoiceAgent }) => {
   const custLanguage = SUPPORTED_LANGUAGES.find(l => l.code === language) || SUPPORTED_LANGUAGES[0];
   const [isListening, setIsListening] = useState(false);
   const [langToast, setLangToast] = useState(null);
+
+  // Sign Communication Rating & Coins Rewards State
+  const [ratingSubmitted, setRatingSubmitted] = useState(false);
+  const [stars, setStars] = useState(5);
+  const [selectedPraise, setSelectedPraise] = useState('Clear Hand Signs 🤟');
 
   // Custom Address Form State
   const [showAddressManager, setShowAddressManager] = useState(false);
@@ -415,6 +423,118 @@ export const CustomerTracker = ({ onOpenVoiceAgent }) => {
           ))}
         </div>
       </div>
+
+      {/* 5-STAR RATING & VISUAL COMMUNICATION REWARDS CARD (ACTIVE WHEN DELIVERED) */}
+      {order.status === 'delivered' && (
+        <div className="glass-panel rounded-3xl p-6 border-2 border-amber-500/60 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 space-y-4 shadow-2xl animate-fadeIn">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-2xl shadow-inner">
+                ⭐
+              </div>
+              <div>
+                <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
+                  <span>Rate Visual Sign Communication</span>
+                  <span className="text-xs bg-amber-500/20 text-amber-300 font-mono font-bold px-2 py-0.5 rounded border border-amber-500/40">
+                    +30 🪙 to Rider • +25 🪙 to You
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-400">
+                  How was rider Alex Rivera's visual sign assist, gesture clarity, and delivery pace?
+                </p>
+              </div>
+            </div>
+
+            <div className="text-right bg-slate-950 px-3 py-1.5 rounded-xl border border-amber-500/30">
+              <span className="text-[10px] text-slate-400 uppercase font-bold block">Your Loyalty Balance</span>
+              <span className="text-base font-black text-amber-300 font-mono">
+                {(customerWallet?.signCoins || 450).toLocaleString()} 🪙
+              </span>
+            </div>
+          </div>
+
+          {!ratingSubmitted ? (
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              if (awardRiderCoins) {
+                awardRiderCoins(30, `Customer ${stars}-Star Visual Communication Rating (${selectedPraise})`);
+              }
+              if (awardCustomerCoins) {
+                awardCustomerCoins(25, "Leaving Visual Communication Review");
+              }
+              confetti({ particleCount: 75, spread: 80, origin: { y: 0.6 } });
+              setRatingSubmitted(true);
+            }} className="space-y-4">
+              {/* Star Rating Selectors */}
+              <div className="flex items-center gap-2 justify-center py-2">
+                {[1, 2, 3, 4, 5].map((starVal) => (
+                  <button
+                    key={starVal}
+                    type="button"
+                    onClick={() => setStars(starVal)}
+                    className={`text-3xl transition transform hover:scale-125 focus:outline-none ${
+                      starVal <= stars ? 'text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]' : 'text-slate-700'
+                    }`}
+                  >
+                    ★
+                  </button>
+                ))}
+                <span className="text-xs font-mono font-bold text-amber-300 ml-2">
+                  {stars === 5 ? '5.0 ⭐ Exceptional Sign Assist' : `${stars}.0 ⭐ Good`}
+                </span>
+              </div>
+
+              {/* Praise Badges */}
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1.5 text-center">
+                  Select Visual Assist Compliment:
+                </label>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {[
+                    'Clear Hand Signs 🤟',
+                    'Super Fast Drop-off ⚡',
+                    'Friendly & Polite 😊',
+                    'Great Visual Chat 💬',
+                    'Perfect Doorstep Care 🚪'
+                  ].map((badge) => (
+                    <button
+                      key={badge}
+                      type="button"
+                      onClick={() => setSelectedPraise(badge)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition border ${
+                        selectedPraise === badge
+                          ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md font-extrabold'
+                          : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-700'
+                      }`}
+                    >
+                      {badge}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Submit Rating Button */}
+              <button
+                type="submit"
+                className="w-full py-3 bg-gradient-to-r from-amber-400 via-amber-500 to-emerald-400 hover:brightness-110 text-slate-950 font-black text-sm rounded-2xl shadow-xl transition flex items-center justify-center gap-2 uppercase tracking-wider"
+              >
+                <Award className="w-4 h-4 text-slate-950" />
+                <span>Submit 5-Star Rating & Award Rider 30 🪙 (+25 🪙 for You!)</span>
+              </button>
+            </form>
+          ) : (
+            <div className="p-4 bg-emerald-950/80 border border-emerald-500/60 rounded-2xl text-center space-y-2 animate-fadeIn">
+              <div className="text-2xl">🎉 🤟</div>
+              <h4 className="text-sm font-extrabold text-emerald-200">
+                Thank You! Your Review & 30 SignCoins Have Been Awarded to Alex Rivera!
+              </h4>
+              <p className="text-xs text-slate-300">
+                +25 SignCoins loyalty reward credited to your customer account!
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* DIRECT CHAT WITH RIDER */}
       <div className="glass-panel rounded-3xl p-6 border-2 border-slate-800 bg-slate-900/95 space-y-4 shadow-xl relative overflow-hidden">

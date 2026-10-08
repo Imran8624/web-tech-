@@ -111,7 +111,13 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
     setLanguage,
     t = (k) => k,
     SUPPORTED_LANGUAGES = [],
-    openTransferModal
+    openTransferModal,
+    riderWallet,
+    setRiderWallet,
+    awardRiderCoins,
+    redeemCoinsToCash,
+    withdrawCashPayout,
+    claimDailyGrant
   } = useApp();
 
   // Active Main Tab: 'delivery' | 'earnings'
@@ -123,27 +129,33 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
   // Timeframe Selection for Total Payments: 'hours' | 'days' | 'weeks' | 'months' | 'years'
   const [paymentTimeframe, setPaymentTimeframe] = useState('days');
 
-  // Wallet and Coins State
-  const [wallet, setWallet] = useState(() => {
-    try {
-      const saved = localStorage.getItem('signshift_rider_wallet');
-      return saved ? JSON.parse(saved) : INITIAL_WALLET;
-    } catch (e) {
-      return INITIAL_WALLET;
-    }
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('signshift_rider_wallet', JSON.stringify(wallet));
-    } catch (e) {
-      console.error(e);
-    }
-  }, [wallet]);
+  // Synchronized Wallet & Coins State
+  const wallet = riderWallet || INITIAL_WALLET;
+  const setWallet = setRiderWallet;
 
   // SignCoins Redemption State
-  const [coinsToRedeem, setCoinsToRedeem] = useState(500);
+  const [coinsToRedeem, setCoinsToRedeem] = useState(() => {
+    const cur = wallet?.signCoins || 2850;
+    return cur >= 500 ? 500 : Math.max(100, Math.floor(cur / 100) * 100);
+  });
   const [redeemSuccessMsg, setRedeemSuccessMsg] = useState('');
+
+  // Clamp coinsToRedeem if balance changes
+  useEffect(() => {
+    const cur = wallet.signCoins || 0;
+    if (cur >= 100 && coinsToRedeem > cur) {
+      setCoinsToRedeem(Math.floor(cur / 100) * 100);
+    } else if (cur < 100) {
+      setCoinsToRedeem(100);
+    }
+  }, [wallet.signCoins]);
+
+  // Instant Cash Payout Modal State
+  const [showPayoutModal, setShowPayoutModal] = useState(false);
+  const [payoutAmount, setPayoutAmount] = useState(50);
+  const [payoutMethod, setPayoutMethod] = useState('Direct Bank ACH');
+  const [payoutAccount, setPayoutAccount] = useState('Chase Checking ****4192');
+  const [payoutSuccessMsg, setPayoutSuccessMsg] = useState('');
 
   // Dynamic Incentives Toggles
   const [incentiveSurge, setIncentiveSurge] = useState(true); // +$3.50
@@ -327,46 +339,47 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
 
   // Handle Coin Redemption into Real Cash
   const handleRedeemCoins = () => {
-    if (coinsToRedeem < 100) return;
-    if (coinsToRedeem > wallet.signCoins) {
+    if (coinsToRedeem < 100) {
+      alert("Minimum redemption is 100 SignCoins.");
+      return;
+    }
+    if (coinsToRedeem > (wallet.signCoins || 0)) {
       alert("Insufficient SignCoins balance.");
       return;
     }
 
-    // 100 SignCoins = $1.00 USD
-    const cashValueUSD = coinsToRedeem / 100;
-    const formattedCredited = formatMoney(cashValueUSD);
-
-    setWallet(prev => ({
-      ...prev,
-      signCoins: prev.signCoins - coinsToRedeem,
-      walletBalanceUSD: prev.walletBalanceUSD + cashValueUSD,
-      redemptions: [
-        {
-          id: `RED-${Date.now()}`,
-          date: 'Just Now',
-          coins: coinsToRedeem,
-          cashUSD: cashValueUSD,
-          status: 'Credited to Wallet'
-        },
-        ...prev.redemptions
-      ]
-    }));
+    const res = redeemCoinsToCash(coinsToRedeem);
+    if (!res.success) {
+      alert(res.error || "Redemption failed.");
+      return;
+    }
 
     confetti({ particleCount: 80, spread: 80, origin: { y: 0.6 } });
     triggerVisualAlert('gold');
-    setRedeemSuccessMsg(`Successfully redeemed ${coinsToRedeem.toLocaleString()} SignCoins! ${formattedCredited} credited to your cash balance.`);
+    setRedeemSuccessMsg(`Successfully redeemed ${coinsToRedeem.toLocaleString()} SignCoins! ${formatMoney(res.cashValueUSD)} credited to your cash balance.`);
     setTimeout(() => setRedeemSuccessMsg(''), 5000);
 
-    if (logActivity) {
-      logActivity(
-        "SignCoins Redeemed to Cash",
-        "AUTH",
-        `Rider Alex Rivera converted ${coinsToRedeem} coins to $${cashValueUSD.toFixed(2)} USD`,
-        "Alex Rivera (Rider)",
-        "SUCCESS"
-      );
+    // Re-adjust coinsToRedeem
+    const remaining = (wallet.signCoins || 0) - coinsToRedeem;
+    if (remaining >= 100) {
+      setCoinsToRedeem(Math.min(500, Math.floor(remaining / 100) * 100));
+    } else {
+      setCoinsToRedeem(100);
     }
+  };
+
+  const handleExecutePayout = (e) => {
+    e.preventDefault();
+    const res = withdrawCashPayout(payoutAmount, payoutMethod, payoutAccount);
+    if (!res.success) {
+      alert(res.error || "Payout failed.");
+      return;
+    }
+    setPayoutSuccessMsg(`Instant payout of ${formatMoney(payoutAmount)} sent to ${payoutAccount}!`);
+    setTimeout(() => {
+      setPayoutSuccessMsg('');
+      setShowPayoutModal(false);
+    }, 3000);
   };
 
   const handleSimulateCustomerInput = (e) => {
@@ -389,6 +402,10 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
     const currentLangCode = language || 'en';
     const translatedMsg = signItem.translations ? (signItem.translations[currentLangCode] || signItem.translations['en']) : signItem.label;
     sendRiderResponse(translatedMsg, signItem.key || signItem.label, signItem.translations);
+    // Award +20 SignCoins for using 3D Sign Assist!
+    if (awardRiderCoins) {
+      awardRiderCoins(20, `Sign Assist Quick Sign: ${signItem.label}`);
+    }
   };
 
   const handleAddCustomSign = (e) => {
@@ -568,7 +585,7 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
 
             {/* CARD 1: LIVE WALLET BALANCE */}
-            <div className="glass-panel rounded-2xl p-4 border border-slate-800 bg-slate-900/90 space-y-1">
+            <div className="glass-panel rounded-2xl p-4 border border-slate-800 bg-slate-900/90 space-y-2">
               <div className="flex justify-between items-center text-slate-400">
                 <span className="text-[11px] font-bold uppercase tracking-wider">Withdrawable Cash</span>
                 <Wallet className="w-4 h-4 text-emerald-400" />
@@ -579,6 +596,13 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
               <p className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
                 <CheckCircle2 className="w-3 h-3" /> Ready for Instant Payout
               </p>
+              <button
+                onClick={() => setShowPayoutModal(true)}
+                className="w-full py-1.5 px-2.5 bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 hover:from-emerald-500/30 hover:to-cyan-500/30 text-emerald-300 border border-emerald-500/40 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow"
+              >
+                <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
+                <span>💸 Cash Out / Instant Payout</span>
+              </button>
             </div>
 
             {/* CARD 2: TOTAL DELIVERED ORDERS */}
@@ -940,26 +964,45 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
 
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-400/60 flex items-center justify-center text-amber-300 text-xl font-bold">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-400/60 flex items-center justify-center text-amber-300 text-xl font-bold shadow-inner">
                   🪙
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-base text-white">SignCoins Rewards & Cash Redemption Hub</h3>
+                  <h3 className="font-extrabold text-base text-white flex items-center gap-2">
+                    <span>SignCoins Rewards & Cash Redemption Hub</span>
+                    <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-400/40 font-mono">
+                      100 🪙 = {formatMoney(1.00)}
+                    </span>
+                  </h3>
                   <p className="text-xs text-slate-400">
-                    Earn coins through accessibility ratings, and convert directly into cash ({formatMoney(1.00)} per 100 🪙)
+                    Earn coins on deliveries, sign assist & 5-star ratings. Convert directly into withdrawable cash anytime!
                   </p>
                 </div>
               </div>
 
-              <div className="text-right">
-                <span className="text-xs text-slate-400 block font-bold">Your Coin Balance</span>
-                <span className="text-lg font-black text-amber-300 font-mono">{wallet.signCoins.toLocaleString()} 🪙</span>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    claimDailyGrant();
+                    confetti({ particleCount: 70, spread: 70, origin: { y: 0.6 } });
+                  }}
+                  className="px-3 py-1.5 bg-gradient-to-r from-amber-500/20 to-emerald-500/20 hover:from-amber-500/30 hover:to-emerald-500/30 border border-amber-400/50 rounded-xl text-xs font-bold text-amber-300 transition flex items-center gap-1.5 shadow"
+                  title="Claim free test / daily grant of 500 SignCoins"
+                >
+                  <Gift className="w-4 h-4 text-amber-400" />
+                  <span>🎁 Claim Daily Grant (+500 🪙)</span>
+                </button>
+
+                <div className="text-right bg-slate-950 px-3.5 py-1.5 rounded-xl border border-amber-500/30">
+                  <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Your Balance</span>
+                  <span className="text-lg font-black text-amber-300 font-mono">{(wallet.signCoins || 0).toLocaleString()} 🪙</span>
+                </div>
               </div>
             </div>
 
             {/* Success message feedback */}
             {redeemSuccessMsg && (
-              <div className="p-3 bg-emerald-950/90 border border-emerald-500/60 rounded-xl text-xs text-emerald-200 font-bold flex items-center gap-2 animate-fadeIn">
+              <div className="p-3 bg-emerald-950/90 border border-emerald-500/60 rounded-xl text-xs text-emerald-200 font-bold flex items-center gap-2 animate-fadeIn shadow">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
                 <span>{redeemSuccessMsg}</span>
               </div>
@@ -970,41 +1013,59 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
 
               <div className="md:col-span-7 p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-3">
                 <label className="text-xs font-bold text-slate-300 flex justify-between">
-                  <span>Select Coins to Redeem:</span>
+                  <span>Select Coins to Convert to Cash:</span>
                   <span className="text-amber-400 font-mono font-extrabold">{coinsToRedeem.toLocaleString()} Coins</span>
                 </label>
 
-                {/* Slider */}
-                <input
-                  type="range"
-                  min="100"
-                  max={Math.max(100, Math.floor(wallet.signCoins / 100) * 100)}
-                  step="100"
-                  value={coinsToRedeem}
-                  onChange={(e) => setCoinsToRedeem(Number(e.target.value))}
-                  className="w-full accent-amber-400 cursor-pointer"
-                />
+                {/* Range Slider + Exact Number Box */}
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range"
+                    min="100"
+                    max={Math.max(100, Math.floor((wallet.signCoins || 0) / 100) * 100)}
+                    step="100"
+                    value={coinsToRedeem}
+                    onChange={(e) => setCoinsToRedeem(Number(e.target.value))}
+                    className="flex-1 accent-amber-400 cursor-pointer"
+                  />
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="100"
+                      max={Math.max(100, wallet.signCoins || 0)}
+                      step="50"
+                      value={coinsToRedeem}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        setCoinsToRedeem(isNaN(val) ? 100 : Math.min(wallet.signCoins || 0, Math.max(100, val)));
+                      }}
+                      className="w-24 px-2 py-1 bg-slate-900 border border-slate-700 rounded-lg text-amber-300 font-mono font-bold text-xs text-center focus:outline-none focus:border-amber-400"
+                    />
+                    <span className="absolute right-2 top-1 text-[10px] text-amber-400 pointer-events-none">🪙</span>
+                  </div>
+                </div>
 
-                {/* Preset Buttons */}
+                {/* Preset Chips */}
                 <div className="flex flex-wrap gap-1.5 pt-1">
-                  {[100, 500, 1000, 2000].map(amt => (
+                  {[100, 250, 500, 1000, 2000].map(amt => (
                     <button
                       key={amt}
-                      onClick={() => setCoinsToRedeem(Math.min(wallet.signCoins, amt))}
-                      disabled={wallet.signCoins < amt}
+                      onClick={() => setCoinsToRedeem(Math.min(wallet.signCoins || 0, amt))}
+                      disabled={(wallet.signCoins || 0) < amt}
                       className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold border transition ${coinsToRedeem === amt
                         ? 'bg-amber-500 text-slate-950 border-amber-400'
-                        : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white'
+                        : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed'
                         }`}
                     >
                       {amt.toLocaleString()} 🪙
                     </button>
                   ))}
                   <button
-                    onClick={() => setCoinsToRedeem(Math.floor(wallet.signCoins / 100) * 100)}
-                    className="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-slate-900 hover:bg-slate-800 text-amber-400 border border-slate-800"
+                    onClick={() => setCoinsToRedeem(Math.max(100, Math.floor((wallet.signCoins || 0) / 100) * 100))}
+                    disabled={(wallet.signCoins || 0) < 100}
+                    className="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-slate-900 hover:bg-slate-800 text-amber-400 border border-slate-800 disabled:opacity-30"
                   >
-                    Max ({Math.floor(wallet.signCoins / 100) * 100})
+                    Max ({Math.floor((wallet.signCoins || 0) / 100) * 100})
                   </button>
                 </div>
               </div>
@@ -1015,12 +1076,12 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
                 <div className="text-3xl font-black text-emerald-400 font-mono">
                   +{formatMoney(coinsToRedeem / 100)}
                 </div>
-                <p className="text-[10px] text-slate-400">100 Coins = $1.00 USD in {selectedCurrency}</p>
+                <p className="text-[10px] text-slate-400">Rate: 100 Coins = $1.00 USD in {selectedCurrency}</p>
 
                 <button
                   onClick={handleRedeemCoins}
-                  disabled={wallet.signCoins < 100 || coinsToRedeem > wallet.signCoins}
-                  className="w-full py-2.5 bg-gradient-to-r from-amber-400 to-emerald-400 hover:brightness-110 text-slate-950 font-extrabold rounded-xl shadow-lg transition flex items-center justify-center gap-1.5 text-xs uppercase tracking-wider"
+                  disabled={(wallet.signCoins || 0) < 100 || coinsToRedeem > (wallet.signCoins || 0)}
+                  className="w-full py-2.5 bg-gradient-to-r from-amber-400 to-emerald-400 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-extrabold rounded-xl shadow-lg transition flex items-center justify-center gap-1.5 text-xs uppercase tracking-wider"
                 >
                   <Gift className="w-4 h-4" />
                   <span>Redeem {coinsToRedeem} Coins Now</span>
@@ -1029,19 +1090,155 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
 
             </div>
 
-            {/* How Rider Earns Coins */}
-            <div className="pt-2 border-t border-slate-900 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-slate-400">
-              <div className="p-2.5 bg-slate-950/60 rounded-xl border border-slate-800/80">
-                <span className="font-bold text-amber-300 block">🛵 +50 🪙 per Delivery</span>
-                <span className="text-[10px]">Automatically awarded on order drop-off</span>
+            {/* How Rider Earns Coins & Interactive Claim Station */}
+            <div className="pt-2 border-t border-slate-800/80 space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <span>How to Earn SignCoins (Tap Any Milestone to Claim & Test Instantly):</span>
+                </span>
+                <span className="text-[11px] text-slate-400 font-mono">Live Interactive Rewards</span>
               </div>
-              <div className="p-2.5 bg-slate-950/60 rounded-xl border border-slate-800/80">
-                <span className="font-bold text-amber-300 block">⭐ +30 🪙 for 5-Star Rating</span>
-                <span className="text-[10px]">When customer rates visual communication</span>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs text-slate-300">
+                {/* 1. Delivery Drop-Off */}
+                <div className="p-3 bg-slate-950/80 rounded-2xl border border-slate-800 hover:border-amber-400/50 transition flex flex-col justify-between space-y-2">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="font-extrabold text-amber-300 flex items-center gap-1">
+                        <span>🛵</span>
+                        <span>+50 🪙 Delivery</span>
+                      </span>
+                      <span className="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-bold font-mono">
+                        Per Drop-off
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Automatically awarded whenever you complete an order drop-off.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      awardRiderCoins(50, "Order Delivery Milestone Completed");
+                      confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+                    }}
+                    className="w-full py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-xl text-[11px] font-bold transition flex items-center justify-center gap-1 shadow"
+                  >
+                    <span>Claim Drop-Off (+50 🪙)</span>
+                  </button>
+                </div>
+
+                {/* 2. 5-Star Rating */}
+                <div className="p-3 bg-slate-950/80 rounded-2xl border border-slate-800 hover:border-amber-400/50 transition flex flex-col justify-between space-y-2">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="font-extrabold text-amber-300 flex items-center gap-1">
+                        <span>⭐</span>
+                        <span>+30 🪙 Rating</span>
+                      </span>
+                      <span className="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-bold font-mono">
+                        5-Star Praise
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Awarded when customer rates accessible sign communication.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      awardRiderCoins(30, "Customer 5-Star Visual Communication Praise");
+                      confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+                    }}
+                    className="w-full py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-xl text-[11px] font-bold transition flex items-center justify-center gap-1 shadow"
+                  >
+                    <span>Simulate Rating (+30 🪙)</span>
+                  </button>
+                </div>
+
+                {/* 3. Sign Assist */}
+                <div className="p-3 bg-slate-950/80 rounded-2xl border border-slate-800 hover:border-amber-400/50 transition flex flex-col justify-between space-y-2">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="font-extrabold text-amber-300 flex items-center gap-1">
+                        <span>🤟</span>
+                        <span>+20 🪙 Sign Assist</span>
+                      </span>
+                      <span className="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-bold font-mono">
+                        Per Hand Sign
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Awarded whenever 3D sign avatar is used in chat communication.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      awardRiderCoins(20, "3D Sign Assist Used in Chat");
+                      setActiveSignKey("THANK YOU");
+                      confetti({ particleCount: 40, spread: 50, origin: { y: 0.6 } });
+                    }}
+                    className="w-full py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-xl text-[11px] font-bold transition flex items-center justify-center gap-1 shadow"
+                  >
+                    <span>Trigger Sign (+20 🪙)</span>
+                  </button>
+                </div>
               </div>
-              <div className="p-2.5 bg-slate-950/60 rounded-xl border border-slate-800/80">
-                <span className="font-bold text-amber-300 block">🤟 +20 🪙 for Sign Assist</span>
-                <span className="text-[10px]">Using 3D sign avatar in chat</span>
+            </div>
+
+            {/* REDEMPTION & CASH OUT TRANSACTION LEDGER */}
+            <div className="pt-3 border-t border-slate-800 space-y-2">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-300">
+                <span className="flex items-center gap-1.5">
+                  <CreditCard className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Recent Redemptions & Cash Payout History</span>
+                </span>
+                <span className="text-[11px] text-slate-500 font-mono">
+                  {(wallet.redemptions || []).length} Redemptions • {(wallet.payouts || []).length} Payouts
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                {/* Redemptions List */}
+                <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                  <span className="text-[10px] uppercase font-bold text-amber-400/80 block">Coin Redemptions to Cash:</span>
+                  {(wallet.redemptions || []).slice(0, 4).map((red) => (
+                    <div key={red.id} className="p-2 bg-slate-950 rounded-xl border border-slate-800/80 flex items-center justify-between text-[11px]">
+                      <div>
+                        <span className="font-mono text-amber-300 font-bold">{red.coins} 🪙 converted</span>
+                        <span className="text-[10px] text-slate-500 block">{red.date}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-mono text-emerald-400 font-bold">+{formatMoney(red.cashUSD)}</span>
+                        <span className="text-[10px] text-emerald-300/80 block flex items-center gap-1 justify-end">
+                          <CheckCircle2 className="w-2.5 h-2.5" /> Credited
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                  {(!wallet.redemptions || wallet.redemptions.length === 0) && (
+                    <p className="text-[11px] text-slate-500 italic p-2">No redemptions yet. Convert coins above!</p>
+                  )}
+                </div>
+
+                {/* Cash Payouts List */}
+                <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                  <span className="text-[10px] uppercase font-bold text-emerald-400/80 block">Cash Withdrawals / Payouts:</span>
+                  {(wallet.payouts || []).slice(0, 4).map((pay) => (
+                    <div key={pay.id} className="p-2 bg-slate-950 rounded-xl border border-slate-800/80 flex items-center justify-between text-[11px]">
+                      <div>
+                        <span className="font-bold text-white block">{pay.method || 'Bank ACH'}</span>
+                        <span className="text-[10px] text-slate-500">{pay.destination || pay.date}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-mono text-emerald-300 font-bold">-{formatMoney(pay.amountUSD)}</span>
+                        <span className="text-[10px] text-cyan-300 block">Completed</span>
+                      </div>
+                    </div>
+                  ))}
+                  {(!wallet.payouts || wallet.payouts.length === 0) && (
+                    <p className="text-[11px] text-slate-500 italic p-2">No cash payouts yet. Click "Cash Out" on wallet card!</p>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -1520,6 +1717,126 @@ export const RiderDashboard = ({ onOpenVoiceAgent }) => {
                   className="flex-1 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg"
                 >
                   Add Sign Button
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* INSTANT CASH PAYOUT / WITHDRAWAL MODAL */}
+      {showPayoutModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900 border-2 border-emerald-500/60 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl animate-fadeIn">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+                  💸
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-white text-base">Instant Cash Out / Payout</h3>
+                  <p className="text-[11px] text-slate-400">Available: {formatMoney(wallet.walletBalanceUSD)}</p>
+                </div>
+              </div>
+              <button onClick={() => setShowPayoutModal(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {payoutSuccessMsg && (
+              <div className="p-3 bg-emerald-950/90 border border-emerald-500/60 rounded-xl text-xs text-emerald-200 font-bold flex items-center gap-2 animate-fadeIn">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                <span>{payoutSuccessMsg}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleExecutePayout} className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">
+                  Payout Amount ({selectedCurrency})
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="5"
+                    max={wallet.walletBalanceUSD}
+                    step="5"
+                    required
+                    value={payoutAmount}
+                    onChange={(e) => setPayoutAmount(Number(e.target.value))}
+                    className="flex-1 px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-emerald-400 font-mono font-bold text-sm focus:border-emerald-400 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setPayoutAmount(Math.floor(wallet.walletBalanceUSD))}
+                    className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-emerald-300 rounded-xl border border-slate-700"
+                  >
+                    Max ({Math.floor(wallet.walletBalanceUSD)})
+                  </button>
+                </div>
+                <div className="flex gap-1.5 pt-1.5">
+                  {[25, 50, 100, 200].map(amt => (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => setPayoutAmount(amt)}
+                      disabled={wallet.walletBalanceUSD < amt}
+                      className="px-2.5 py-1 bg-slate-950 border border-slate-800 rounded-lg text-[11px] text-slate-300 hover:text-white disabled:opacity-40 font-mono"
+                    >
+                      ${amt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Payout Method</label>
+                <select
+                  value={payoutMethod}
+                  onChange={(e) => {
+                    setPayoutMethod(e.target.value);
+                    if (e.target.value === 'Direct Bank ACH') setPayoutAccount('Chase Checking ****4192');
+                    else if (e.target.value === 'Instant UPI Rails') setPayoutAccount('alex.rivera@okaxis');
+                    else setPayoutAccount('Visa Debit ****8814');
+                  }}
+                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:border-emerald-400 focus:outline-none cursor-pointer"
+                >
+                  <option value="Direct Bank ACH">🏦 Direct Bank ACH (Chase Checking ****4192)</option>
+                  <option value="Instant UPI Rails">⚡ Instant UPI Real-Time Rails (alex.rivera@okaxis)</option>
+                  <option value="Visa Direct Instant Card">💳 Visa Direct / Debit Card (Instant Payout)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Account / Destination Reference</label>
+                <input
+                  type="text"
+                  required
+                  value={payoutAccount}
+                  onChange={(e) => setPayoutAccount(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-slate-200 font-mono focus:border-emerald-400 focus:outline-none"
+                />
+              </div>
+
+              <div className="p-2.5 bg-emerald-950/40 rounded-xl border border-emerald-500/30 text-[11px] text-emerald-300 flex justify-between">
+                <span>Transfer Processing Fee:</span>
+                <span className="font-bold text-emerald-400">$0.00 (Zero Fee Courier Rail)</span>
+              </div>
+
+              <div className="pt-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPayoutModal(false)}
+                  className="flex-1 py-2.5 bg-slate-950 hover:bg-slate-800 text-slate-400 font-bold text-xs rounded-xl border border-slate-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={wallet.walletBalanceUSD < 5 || payoutAmount > wallet.walletBalanceUSD}
+                  className="flex-1 py-2.5 bg-gradient-to-r from-emerald-400 to-cyan-400 hover:brightness-110 disabled:opacity-40 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg transition"
+                >
+                  Confirm Instant Payout
                 </button>
               </div>
             </form>

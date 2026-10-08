@@ -3,6 +3,7 @@ import { SUPPORTED_LANGUAGES, RIDER_QUICK_SIGNS } from '../constants/languages';
 import { TRANSLATIONS } from '../constants/translations';
 import { DEFAULT_CHAT_MESSAGES, LANG_LOCALES, translateChatMessage } from '../constants/communicationTranslations';
 import { NEARBY_RIDERS } from '../constants/nearbyRiders.js';
+import confetti from 'canvas-confetti';
 
 const AppContext = createContext(null);
 
@@ -227,6 +228,42 @@ export const initialOrderState = {
     badges: ["Deaf / Non-Verbal Partner", "Top Delivery Pro", "SignShift Certified"]
   },
   chatMessages: DEFAULT_CHAT_MESSAGES
+};
+
+export const INITIAL_RIDER_WALLET = {
+  walletBalanceUSD: 482.50,
+  signCoins: 2850,
+  lifetimeOrders: 1424,
+  todayOrders: 11,
+  weekOrders: 68,
+  monthOrders: 274,
+  yearOrders: 3280,
+  hoursWorkedToday: 6.2,
+  hourlyRateUSD: 26.50,
+  basePayPerOrderUSD: 8.50,
+  distancePayUSD: 3.20,
+  avgTipUSD: 3.80,
+  accessibilityBonusUSD: 2.00,
+  redemptions: [
+    { id: 'RED-901', date: 'Yesterday', coins: 500, cashUSD: 5.00, status: 'Credited to Wallet' },
+    { id: 'RED-902', date: '3 days ago', coins: 1000, cashUSD: 10.00, status: 'Credited to Wallet' }
+  ],
+  payouts: [
+    { id: 'PAY-801', date: '4 days ago', amountUSD: 120.00, method: 'Direct Bank ACH', destination: 'Chase Checking ****4192', status: 'Completed' }
+  ],
+  deliveredOrdersList: [
+    { id: 'ORD-9480', customer: 'Sarah Jenkins', restaurant: 'Aroma Bistro', time: '11:45 AM', baseUSD: 8.50, distUSD: 3.20, tipUSD: 4.50, bonusUSD: 2.00, totalUSD: 18.20 },
+    { id: 'ORD-9478', customer: 'David Kim', restaurant: 'Tokyo Sushi', time: '10:30 AM', baseUSD: 8.50, distUSD: 4.10, tipUSD: 5.00, bonusUSD: 2.00, totalUSD: 19.60 },
+    { id: 'ORD-9475', customer: 'Emily Watson', restaurant: 'Green Leaf Salads', time: '09:15 AM', baseUSD: 8.50, distUSD: 2.00, tipUSD: 3.00, bonusUSD: 2.00, totalUSD: 15.50 },
+    { id: 'ORD-9471', customer: 'Michael Chang', restaurant: 'Taco Fiesta', time: '08:20 AM', baseUSD: 8.50, distUSD: 3.50, tipUSD: 3.00, bonusUSD: 2.00, totalUSD: 17.00 },
+  ]
+};
+
+export const INITIAL_CUSTOMER_WALLET = {
+  signCoins: 450,
+  discountCreditsUSD: 4.50,
+  ratingsGiven: 14,
+  loyaltyTier: 'Gold Supporter'
 };
 
 export const DEFAULT_ACTIVITY_LOGS = [
@@ -594,6 +631,38 @@ export const AppProvider = ({ children }) => {
   const [riderGps, setRiderGps] = useState(() => loadStorage('signshift_rider_gps', INITIAL_RIDER_GPS));
   const geoWatchIdRef = useRef(null);
 
+  // SignCoins & Finance Wallets (Rider & Customer)
+  const [riderWallet, setRiderWallet] = useState(() => {
+    try {
+      const saved = loadStorage('signshift_rider_wallet', INITIAL_RIDER_WALLET);
+      return {
+        ...INITIAL_RIDER_WALLET,
+        ...saved,
+        signCoins: typeof saved.signCoins === 'number' && !isNaN(saved.signCoins) ? saved.signCoins : INITIAL_RIDER_WALLET.signCoins,
+        walletBalanceUSD: typeof saved.walletBalanceUSD === 'number' && !isNaN(saved.walletBalanceUSD) ? saved.walletBalanceUSD : INITIAL_RIDER_WALLET.walletBalanceUSD,
+        redemptions: Array.isArray(saved.redemptions) ? saved.redemptions : INITIAL_RIDER_WALLET.redemptions,
+        payouts: Array.isArray(saved.payouts) ? saved.payouts : (INITIAL_RIDER_WALLET.payouts || []),
+        deliveredOrdersList: Array.isArray(saved.deliveredOrdersList) ? saved.deliveredOrdersList : INITIAL_RIDER_WALLET.deliveredOrdersList
+      };
+    } catch (e) {
+      return INITIAL_RIDER_WALLET;
+    }
+  });
+
+  const [customerWallet, setCustomerWallet] = useState(() => {
+    try {
+      const saved = loadStorage('signshift_customer_wallet', INITIAL_CUSTOMER_WALLET);
+      return {
+        ...INITIAL_CUSTOMER_WALLET,
+        ...saved,
+        signCoins: typeof saved.signCoins === 'number' && !isNaN(saved.signCoins) ? saved.signCoins : INITIAL_CUSTOMER_WALLET.signCoins,
+        discountCreditsUSD: typeof saved.discountCreditsUSD === 'number' && !isNaN(saved.discountCreditsUSD) ? saved.discountCreditsUSD : INITIAL_CUSTOMER_WALLET.discountCreditsUSD
+      };
+    } catch (e) {
+      return INITIAL_CUSTOMER_WALLET;
+    }
+  });
+
   const [isTranslating, setIsTranslating] = useState(false);
   const [signSpeed, setSignSpeed] = useState(1);
   const [avatarMode, setAvatarMode] = useState(() => loadStorage('signshift_avatar_mode', 'human'));
@@ -616,6 +685,8 @@ export const AppProvider = ({ children }) => {
   useEffect(() => { saveStorage('signshift_nearby_riders', nearbyRidersList); }, [nearbyRidersList]);
   useEffect(() => { saveStorage('signshift_order', order); }, [order]);
   useEffect(() => { saveStorage('signshift_rider_gps', riderGps); }, [riderGps]);
+  useEffect(() => { saveStorage('signshift_rider_wallet', riderWallet); }, [riderWallet]);
+  useEffect(() => { saveStorage('signshift_customer_wallet', customerWallet); }, [customerWallet]);
   useEffect(() => { saveStorage('signshift_avatar_mode', avatarMode); }, [avatarMode]);
   useEffect(() => { saveStorage('signshift_activity_logs', activityLogs); }, [activityLogs]);
   useEffect(() => { saveStorage('signshift_notifications', notificationsList); }, [notificationsList]);
@@ -1341,6 +1412,150 @@ export const AppProvider = ({ children }) => {
     logActivity('Kitchen Marked Order Ready', 'ORDER', `Order #${order.id} packed and ready for pickup`, 'Merchant Kitchen', 'SUCCESS');
   }, [order, pushNotification, logActivity]);
 
+  // --- SIGNCOINS REWARDS & FINANCE HUB ENGINE --- //
+  const awardRiderCoins = useCallback((coins, reason = "Accessibility Reward") => {
+    if (!coins || coins <= 0) return;
+    const addAmt = Number(coins);
+    setRiderWallet(prev => ({
+      ...prev,
+      signCoins: (prev.signCoins || 0) + addAmt
+    }));
+    triggerVisualAlert('gold');
+    try {
+      confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+    } catch (e) {}
+    pushNotification({
+      targetRole: 'rider',
+      title: `🪙 +${addAmt} SignCoins Awarded!`,
+      message: `${reason}. Saved to your wallet balance.`,
+      type: 'reward',
+      icon: 'Coins'
+    });
+    logActivity(
+      "SignCoins Reward Issued",
+      "REWARD",
+      `Awarded +${addAmt} SignCoins to Alex Rivera (${reason})`,
+      "Reward System",
+      "SUCCESS"
+    );
+  }, [triggerVisualAlert, pushNotification, logActivity]);
+
+  const awardCustomerCoins = useCallback((coins, reason = "Loyalty Reward") => {
+    if (!coins || coins <= 0) return;
+    const addAmt = Number(coins);
+    setCustomerWallet(prev => ({
+      ...prev,
+      signCoins: (prev.signCoins || 0) + addAmt
+    }));
+    triggerVisualAlert('gold');
+    pushNotification({
+      targetRole: 'customer',
+      title: `🪙 +${addAmt} SignCoins Earned!`,
+      message: `${reason}. Saved to your customer rewards balance.`,
+      type: 'reward',
+      icon: 'Coins'
+    });
+  }, [triggerVisualAlert, pushNotification]);
+
+  const redeemCoinsToCash = useCallback((coinsToRedeem) => {
+    const coins = Math.floor(Number(coinsToRedeem));
+    if (isNaN(coins) || coins < 100) {
+      return { success: false, error: "Minimum redemption is 100 SignCoins." };
+    }
+    if (coins > (riderWallet.signCoins || 0)) {
+      return { success: false, error: "Insufficient SignCoins balance." };
+    }
+
+    const cashValueUSD = coins / 100;
+    const newRedemption = {
+      id: `RED-${Date.now()}`,
+      date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      coins: coins,
+      cashUSD: cashValueUSD,
+      status: 'Credited to Wallet'
+    };
+
+    setRiderWallet(prev => ({
+      ...prev,
+      signCoins: Math.max(0, (prev.signCoins || 0) - coins),
+      walletBalanceUSD: (prev.walletBalanceUSD || 0) + cashValueUSD,
+      redemptions: [newRedemption, ...(prev.redemptions || [])]
+    }));
+
+    triggerVisualAlert('gold');
+    try {
+      confetti({ particleCount: 75, spread: 70, origin: { y: 0.6 } });
+    } catch (e) {}
+
+    pushNotification({
+      targetRole: 'rider',
+      title: '💵 Cash Redemption Successful!',
+      message: `Redeemed ${coins.toLocaleString()} SignCoins! $${cashValueUSD.toFixed(2)} USD credited to your cash balance.`,
+      type: 'reward',
+      icon: 'Gift'
+    });
+    logActivity(
+      "SignCoins Redeemed to Cash",
+      "FINANCE",
+      `Converted ${coins} SignCoins into $${cashValueUSD.toFixed(2)} USD withdrawable cash`,
+      "Alex Rivera (Rider)",
+      "SUCCESS"
+    );
+
+    return { success: true, cashValueUSD, coins };
+  }, [riderWallet.signCoins, triggerVisualAlert, pushNotification, logActivity]);
+
+  const withdrawCashPayout = useCallback((amountUSD, method = "Direct Bank ACH", destination = "Chase Checking ****4192") => {
+    const amt = parseFloat(amountUSD);
+    if (isNaN(amt) || amt < 5.0) {
+      return { success: false, error: "Minimum payout is $5.00 USD." };
+    }
+    if (amt > (riderWallet.walletBalanceUSD || 0)) {
+      return { success: false, error: "Withdrawal amount exceeds available cash balance." };
+    }
+
+    const newPayout = {
+      id: `PAY-${Date.now()}`,
+      date: 'Just Now',
+      amountUSD: amt,
+      method: method,
+      destination: destination,
+      status: 'Completed'
+    };
+
+    setRiderWallet(prev => ({
+      ...prev,
+      walletBalanceUSD: Math.max(0, (prev.walletBalanceUSD || 0) - amt),
+      payouts: [newPayout, ...(prev.payouts || [])]
+    }));
+
+    triggerVisualAlert('gold');
+    try {
+      confetti({ particleCount: 80, spread: 80, origin: { y: 0.5 } });
+    } catch (e) {}
+
+    pushNotification({
+      targetRole: 'rider',
+      title: '🏦 Instant Cash Payout Processed!',
+      message: `$${amt.toFixed(2)} USD transferred to ${destination} via ${method}.`,
+      type: 'reward',
+      icon: 'Wallet'
+    });
+    logActivity(
+      "Instant Cash Payout",
+      "FINANCE",
+      `Transferred $${amt.toFixed(2)} USD to ${destination} (${method})`,
+      "Alex Rivera (Rider)",
+      "SUCCESS"
+    );
+
+    return { success: true, payout: newPayout };
+  }, [riderWallet.walletBalanceUSD, triggerVisualAlert, pushNotification, logActivity]);
+
+  const claimDailyGrant = useCallback(() => {
+    awardRiderCoins(500, "Daily Accessibility Bonus & Community Grant");
+  }, [awardRiderCoins]);
+
   // Update order status with automatic multi-role notifications
   const updateOrderStatus = useCallback((newStatus) => {
     triggerVisualAlert(newStatus === 'delivered' ? 'cyan' : 'gold');
@@ -1413,10 +1628,39 @@ export const AppProvider = ({ children }) => {
 
     if (newStatus === 'delivered') {
       statusMsg = "Order successfully delivered! Enjoy your meal.";
+      const earnedDeliveryUSD = 18.20;
+      const earnedSignCoins = 50;
+
+      setRiderWallet(prev => ({
+        ...prev,
+        signCoins: (prev.signCoins || 0) + earnedSignCoins,
+        walletBalanceUSD: (prev.walletBalanceUSD || 0) + earnedDeliveryUSD,
+        todayOrders: (prev.todayOrders || 0) + 1,
+        lifetimeOrders: (prev.lifetimeOrders || 0) + 1,
+        deliveredOrdersList: [
+          {
+            id: order.id,
+            customer: order.customerName,
+            restaurant: order.merchantName,
+            time: 'Just Now',
+            baseUSD: 8.50,
+            distUSD: 3.20,
+            tipUSD: 4.50,
+            bonusUSD: 2.00,
+            totalUSD: earnedDeliveryUSD
+          },
+          ...(prev.deliveredOrdersList || [])
+        ]
+      }));
+
+      try {
+        confetti({ particleCount: 75, spread: 80, origin: { y: 0.6 } });
+      } catch (e) {}
+
       pushNotification({
         targetRole: 'customer',
         title: '🎉 Order Delivered Successfully!',
-        message: `Your food from ${order.merchantName} was delivered. Enjoy your meal!`,
+        message: `Your food from ${order.merchantName} was delivered. Rate courier communication to earn loyalty coins!`,
         type: 'delivered',
         icon: 'Package'
       });
@@ -1429,8 +1673,8 @@ export const AppProvider = ({ children }) => {
       });
       pushNotification({
         targetRole: 'rider',
-        title: '⭐ Delivery Successful!',
-        message: `Order #${order.id} completed. +$14.50 earned and 5-star rating recorded!`,
+        title: '⭐ Delivery Successful & Rewards Earned!',
+        message: `Order #${order.id} drop-off completed: +$${earnedDeliveryUSD.toFixed(2)} cash & +${earnedSignCoins} 🪙 SignCoins awarded!`,
         type: 'delivered',
         icon: 'Award'
       });
@@ -1657,7 +1901,18 @@ export const AppProvider = ({ children }) => {
       transferOrderToRider,
       transferModalState,
       openTransferModal,
-      closeTransferModal
+      closeTransferModal,
+
+      // SignCoins Rewards & Finance Hub
+      riderWallet,
+      setRiderWallet,
+      awardRiderCoins,
+      redeemCoinsToCash,
+      withdrawCashPayout,
+      claimDailyGrant,
+      customerWallet,
+      setCustomerWallet,
+      awardCustomerCoins
     }}>
       <div className={`min-h-screen ${
         theme === 'neon' ? 'high-contrast-neon theme-neon' :

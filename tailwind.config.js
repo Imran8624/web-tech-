@@ -9,12 +9,12 @@ export default {
     extend: {
       colors: {
         brand: {
-          navy: '#0F172A',
+          navy: '#5d3416ff',
           dark: '#0B1120',
           card: '#1E293B',
-          cyan: '#06B6D4',
+          cyan: '#d4067b8d',
           cyanGlow: '#22D3EE',
-          green: '#22C55E',
+          green: '#2a22c5ff',
           yellow: '#F59E0B',
           red: '#EF4444',
           purple: '#8B5CF6'
