@@ -499,9 +499,46 @@ export const FONT_SIZE_PRESETS = [
   { id: 'ultra', label: '180% Ultra Max', scale: 180, desc: 'Maximum WCAG accessibility scaling', sample: 'Aa' }
 ];
 
+export const getRolePortal = (role) => {
+  switch (role) {
+    case 'rider': return 'rider';
+    case 'customer': return 'customer';
+    case 'merchant': return 'merchant';
+    case 'admin': return 'admin';
+    default: return 'customer';
+  }
+};
+
 export const AppProvider = ({ children }) => {
+  // Auth & Session State
+  const [user, setUser] = useState(() => loadStorage('signshift_active_user', null));
+  const [isAuthenticated, setIsAuthenticated] = useState(() => loadStorage('signshift_is_auth', false));
+  const [authRoleTab, setAuthRoleTab] = useState(() => loadStorage('signshift_auth_tab', 'customer'));
+
   // Navigation & Theme
-  const [currentView, setCurrentView] = useState('login');
+  const [currentView, setCurrentView] = useState(() => {
+    const isAuth = loadStorage('signshift_is_auth', false);
+    const activeUser = loadStorage('signshift_active_user', null);
+    if (isAuth && activeUser?.role) {
+      return getRolePortal(activeUser.role);
+    }
+    return 'login';
+  });
+
+  // Keep active view strictly locked to the user's portal whenever authenticated
+  useEffect(() => {
+    if (isAuthenticated && user?.role) {
+      const allowed = getRolePortal(user.role);
+      if (currentView !== allowed) {
+        setCurrentView(allowed);
+      }
+    }
+  }, [isAuthenticated, user, currentView]);
+
+  useEffect(() => {
+    saveStorage('signshift_auth_tab', authRoleTab);
+  }, [authRoleTab]);
+
   const [theme, setTheme] = useState(() => loadStorage('signshift_theme', 'dark'));
   const [sectorColors, setSectorColors] = useState(() => loadStorage('signshift_sector_colors', DEFAULT_SECTOR_COLORS));
   const [fontSize, setFontSizeState] = useState(() => loadStorage('signshift_font_size', 'normal'));
@@ -619,8 +656,6 @@ export const AppProvider = ({ children }) => {
 
   // Persistent Databases
   const [usersList, setUsersList] = useState(() => loadStorage('signshift_users', DEFAULT_USERS));
-  const [user, setUser] = useState(() => loadStorage('signshift_active_user', null));
-  const [isAuthenticated, setIsAuthenticated] = useState(() => loadStorage('signshift_is_auth', false));
   const [savedAddresses, setSavedAddresses] = useState(() => loadStorage('signshift_addresses', DEFAULT_ADDRESSES));
   const [restaurantsList, setRestaurantsList] = useState(() => loadStorage('signshift_restaurants', DEFAULT_RESTAURANTS));
   const [nearbyRidersList, setNearbyRidersList] = useState(() => loadStorage('signshift_nearby_riders', NEARBY_RIDERS));
@@ -898,6 +933,8 @@ export const AppProvider = ({ children }) => {
     const userName = user?.name || "User";
     setIsAuthenticated(false);
     setUser(null);
+    saveStorage('signshift_is_auth', false);
+    saveStorage('signshift_active_user', null);
     setCurrentView('login');
     logActivity("User Logged Out", "AUTH", `Session terminated for ${userName}`, userName, "INFO");
   }, [user, logActivity]);
@@ -1825,6 +1862,9 @@ export const AppProvider = ({ children }) => {
       usersList,
       user,
       isAuthenticated,
+      authRoleTab,
+      setAuthRoleTab,
+      getRolePortal,
       loginUser,
       registerUser,
       updateUserProfile,

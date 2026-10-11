@@ -25,7 +25,7 @@ import confetti from 'canvas-confetti';
 // 1. FLOATING PUSH NOTIFICATION TOAST
 // -------------------------------------------------------------
 export const NotificationToast = () => {
-  const { latestToast, dismissToast, setCurrentView } = useApp();
+  const { latestToast, dismissToast, setCurrentView, isAuthenticated, user } = useApp();
 
   if (!latestToast) return null;
 
@@ -41,6 +41,10 @@ export const NotificationToast = () => {
   const theme = getRoleTheme(latestToast.targetRole);
 
   const handleGoToView = () => {
+    if (isAuthenticated && user?.role) {
+      dismissToast();
+      return;
+    }
     if (latestToast.targetRole === 'merchant') setCurrentView('merchant');
     else if (latestToast.targetRole === 'rider') setCurrentView('rider');
     else if (latestToast.targetRole === 'customer') setCurrentView('customer');

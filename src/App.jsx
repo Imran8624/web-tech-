@@ -15,7 +15,7 @@ import { NotificationCenter, NotificationToast } from './components/Notification
 import { TransferOrderModal } from './components/TransferOrderModal';
 
 const MainLayout = () => {
-  const { currentView, transferModalState, closeTransferModal } = useApp();
+  const { currentView, isAuthenticated, user, transferModalState, closeTransferModal } = useApp();
   const [isAccessibilityOpen, setIsAccessibilityOpen] = useState(false);
   const [isVoiceAgentOpen, setIsVoiceAgentOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -33,15 +33,24 @@ const MainLayout = () => {
       {/* Floating Push Notification Toast */}
       <NotificationToast />
 
-      {/* Main View Router */}
+      {/* Main View Router - Strict Role Portal Isolation */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-        {currentView === 'landing' && <LandingPage />}
-        {currentView === 'rider' && <RiderDashboard onOpenVoiceAgent={() => setIsVoiceAgentOpen(true)} />}
-        {currentView === 'customer' && <CustomerTracker onOpenVoiceAgent={() => setIsVoiceAgentOpen(true)} />}
-        {currentView === 'merchant' && <MerchantPortal />}
-        {currentView === 'sign-lab' && <SignAvatarLab />}
-        {currentView === 'login' && <AuthLoginView />}
-        {currentView === 'admin' && <AdminDashboard />}
+        {/* If Authenticated: ONLY the user's authorized role portal is rendered */}
+        {isAuthenticated && user?.role === 'customer' && (
+          <CustomerTracker onOpenVoiceAgent={() => setIsVoiceAgentOpen(true)} />
+        )}
+        {isAuthenticated && user?.role === 'rider' && (
+          <RiderDashboard onOpenVoiceAgent={() => setIsVoiceAgentOpen(true)} />
+        )}
+        {isAuthenticated && user?.role === 'merchant' && (
+          <MerchantPortal />
+        )}
+        {isAuthenticated && user?.role === 'admin' && (
+          <AdminDashboard />
+        )}
+
+        {/* If Not Authenticated: Show Landing page or Portal Sign-In / Register */}
+        {!isAuthenticated && (currentView === 'landing' ? <LandingPage /> : <AuthLoginView />)}
       </main>
 
       {/* Real-Time Notification Center Modal */}

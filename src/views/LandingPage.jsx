@@ -27,6 +27,8 @@ import confetti from 'canvas-confetti';
 export const LandingPage = () => {
   const { 
     setCurrentView, 
+    loginUser,
+    setAuthRoleTab,
     triggerVisualAlert, 
     speakText,
     language = 'en',
@@ -93,7 +95,7 @@ export const LandingPage = () => {
               {/* CTAs */}
               <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 pt-2">
                 <button
-                  onClick={() => setCurrentView('rider')}
+                  onClick={() => loginUser('rider')}
                   className="px-8 py-4 bg-gradient-to-r from-cyan-400 via-cyan-500 to-emerald-400 text-slate-950 font-extrabold rounded-2xl shadow-xl shadow-cyan-500/25 hover:scale-105 active:scale-95 transition flex items-center gap-3 group text-base"
                 >
                   <Smartphone className="w-5 h-5 text-slate-950" />
@@ -102,11 +104,11 @@ export const LandingPage = () => {
                 </button>
 
                 <button
-                  onClick={() => setCurrentView('customer')}
+                  onClick={() => loginUser('customer')}
                   className="px-6 py-4 bg-slate-900 hover:bg-slate-800 border-2 border-slate-700 hover:border-cyan-400 text-white font-bold rounded-2xl transition flex items-center gap-2 text-base"
                 >
                   <HeartHandshake className="w-5 h-5 text-cyan-400" />
-                  <span>{t('landing_cta_track', 'Track Active Delivery')}</span>
+                  <span>{t('landing_cta_track', 'Track Active Delivery (Customer)')}</span>
                 </button>
               </div>
 
@@ -344,10 +346,10 @@ export const LandingPage = () => {
             <span className="text-cyan-400">Barrier-Free Logistics</span>
           </div>
           <div className="flex items-center gap-4">
-            <button onClick={() => setCurrentView('rider')} className="hover:text-cyan-400">Rider App</button>
-            <button onClick={() => setCurrentView('customer')} className="hover:text-cyan-400">Customer View</button>
-            <button onClick={() => setCurrentView('merchant')} className="hover:text-cyan-400">Merchant Hub</button>
-            <button onClick={() => setCurrentView('sign-lab')} className="hover:text-cyan-400">3D Sign Studio</button>
+            <button onClick={() => loginUser('rider')} className="hover:text-cyan-400">Rider App</button>
+            <button onClick={() => loginUser('customer')} className="hover:text-emerald-400">Customer View</button>
+            <button onClick={() => loginUser('merchant')} className="hover:text-amber-400">Merchant Hub</button>
+            <button onClick={() => { setAuthRoleTab('customer'); setCurrentView('login'); }} className="hover:text-white">Portals & Login</button>
           </div>
         </div>
       </footer>

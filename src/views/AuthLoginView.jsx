@@ -34,6 +34,8 @@ export const AuthLoginView = () => {
     logoutUser,
     usersList, 
     setCurrentView,
+    authRoleTab,
+    setAuthRoleTab,
     language = 'en',
     setLanguage,
     t = (k) => k,
@@ -41,7 +43,10 @@ export const AuthLoginView = () => {
   } = useApp();
 
   const [authMode, setAuthMode] = useState('signin'); // 'signin' | 'register'
-  const [selectedRole, setSelectedRole] = useState('customer'); // 'rider' | 'customer' | 'merchant' | 'admin'
+  const selectedRole = authRoleTab || 'customer'; // 'rider' | 'customer' | 'merchant' | 'admin'
+  const setSelectedRole = (r) => {
+    if (setAuthRoleTab) setAuthRoleTab(r);
+  };
   
   // Registration Form Fields
   const [name, setName] = useState('');
@@ -170,51 +175,50 @@ export const AuthLoginView = () => {
         </div>
       </div>
 
-      {/* IF LOGGED IN: SHOW ACTIVE SESSION CARD */}
-      {isAuthenticated && user && (
-        <div className="glass-panel rounded-3xl p-5 border-2 border-emerald-500/50 bg-slate-900/95 space-y-4 shadow-xl">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img 
-                src={user.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"} 
-                alt={user.name} 
-                className="w-12 h-12 rounded-2xl object-cover border-2 border-emerald-400"
-              />
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-extrabold text-white text-base">{user.name}</h3>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                    {user.role}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-400 font-mono">{user.email}</p>
-              </div>
+      {/* IF LOGGED IN: SHOW ACTIVE SESSION CARD & HIDE LOGIN FORM */}
+      {isAuthenticated && user ? (
+        <div className="glass-panel rounded-3xl p-6 border-2 border-emerald-500/50 bg-slate-900/95 space-y-5 shadow-2xl text-center">
+          <div className="w-16 h-16 rounded-2xl mx-auto overflow-hidden border-2 border-emerald-400 shadow-lg">
+            <img 
+              src={user.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"} 
+              alt={user.name} 
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <div>
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <h3 className="font-extrabold text-white text-lg">{user.name}</h3>
+              <span className="px-2.5 py-0.5 rounded text-[11px] font-extrabold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                {user.role}
+              </span>
             </div>
+            <p className="text-xs text-slate-400 font-mono">{user.email}</p>
+          </div>
 
+          <div className="p-3.5 bg-slate-950/80 border border-slate-800 rounded-2xl text-xs text-slate-300">
+            🔒 You are currently signed into the <span className="font-extrabold text-cyan-300 uppercase">{user.role} Portal</span>. 
+            Only this portal is accessible in your current session.
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <button
+              onClick={() => setCurrentView(user.role === 'admin' ? 'admin' : user.role === 'rider' ? 'rider' : user.role === 'customer' ? 'customer' : 'merchant')}
+              className="flex-1 py-3 bg-gradient-to-r from-cyan-400 to-emerald-400 text-slate-950 font-extrabold rounded-xl hover:brightness-110 transition flex items-center justify-center gap-2 text-sm shadow-lg"
+            >
+              <span>Enter {user.role.toUpperCase()} Portal</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
             <button
               onClick={logoutUser}
-              className="p-2 bg-slate-950 hover:bg-red-950 text-red-400 hover:text-red-300 border border-slate-800 hover:border-red-700 rounded-xl transition flex items-center gap-1 text-xs font-bold"
-              title="Sign Out"
+              className="px-5 py-3 bg-red-950/60 hover:bg-red-900 text-red-300 border border-red-800/60 hover:border-red-500 rounded-xl transition flex items-center justify-center gap-2 text-sm font-bold"
             >
               <LogOut className="w-4 h-4" />
               <span>Sign Out</span>
             </button>
           </div>
-
-          <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
-            <span className="text-slate-400">Current View Portal:</span>
-            <button
-              onClick={() => setCurrentView(user.role === 'admin' ? 'admin' : user.role === 'rider' ? 'rider' : user.role === 'customer' ? 'customer' : 'merchant')}
-              className="px-3 py-1.5 bg-gradient-to-r from-cyan-400 to-emerald-400 text-slate-950 font-extrabold rounded-lg hover:brightness-110 transition flex items-center gap-1"
-            >
-              <span>Go to {user.role.toUpperCase()} Dashboard</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
         </div>
-      )}
-
-      {/* MAIN LOGIN / REGISTER CARD */}
+      ) : (
+      /* MAIN LOGIN / REGISTER CARD */
       <div className="glass-panel rounded-3xl p-6 sm:p-8 border-2 border-cyan-500/50 bg-slate-900/95 space-y-6 shadow-2xl">
         
         {/* Auth Mode Toggle (Sign In vs Create Account) */}
@@ -545,6 +549,7 @@ export const AuthLoginView = () => {
         </div>
 
       </div>
+      )}
 
     </div>
   );
