@@ -9,15 +9,15 @@ export default {
     extend: {
       colors: {
         brand: {
-          navy: '#5d3416ff',
+          navy: '#cadedfff',
           dark: '#0B1120',
           card: '#1E293B',
-          cyan: '#d4067b8d',
+          cyan: '#cdb9c48d',
           cyanGlow: '#22D3EE',
           green: '#2a22c5ff',
-          yellow: '#F59E0B',
-          red: '#EF4444',
-          purple: '#8B5CF6'
+          yellow: '#fae7c7ff',
+          red: '#e47272ff',
+          purple: '#9279cbff'
         }
       },
       fontFamily: {

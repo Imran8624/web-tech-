@@ -15,13 +15,16 @@ import { NotificationCenter, NotificationToast } from './components/Notification
 import { TransferOrderModal } from './components/TransferOrderModal';
 
 const MainLayout = () => {
-  const { currentView, isAuthenticated, user, transferModalState, closeTransferModal } = useApp();
+  const { currentView, isAuthenticated, user, transferModalState, closeTransferModal, activeSectorBg } = useApp();
   const [isAccessibilityOpen, setIsAccessibilityOpen] = useState(false);
   const [isVoiceAgentOpen, setIsVoiceAgentOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   return (
-    <div className="min-h-screen flex flex-col bg-brand-navy text-slate-100 font-sans selection:bg-brand-cyan selection:text-slate-950">
+    <div 
+      className="min-h-screen flex flex-col text-slate-100 font-sans selection:bg-cyan-400 selection:text-slate-950 transition-colors duration-500 ease-in-out"
+      style={{ backgroundColor: activeSectorBg || 'var(--active-sector-bg, #0F172A)' }}
+    >
       
       {/* Top Navbar */}
       <Navbar 

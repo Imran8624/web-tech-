@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { SUPPORTED_LANGUAGES, RIDER_QUICK_SIGNS } from '../constants/languages';
 import { TRANSLATIONS } from '../constants/translations';
 import { DEFAULT_CHAT_MESSAGES, LANG_LOCALES, translateChatMessage } from '../constants/communicationTranslations';
@@ -438,13 +438,21 @@ const saveStorage = (key, value) => {
 };
 
 export const DEFAULT_SECTOR_COLORS = {
-  rider: '#06B6D4',      // Rider / Courier Sector (Cyan)
-  customer: '#10B981',   // Customer Portal Sector (Emerald)
-  merchant: '#F59E0B',   // Merchant / Kitchen Sector (Amber)
-  avatar: '#06B6D4',     // 3D Human Sign Avatar Sector (Cyan)
-  accent: '#06B6D4',     // Primary Accent & UI Glow
-  card: '#1E293B',       // Card Panel Surface
-  bg: '#0F172A'          // Canvas Background
+  rider: '#0284C7',          // Rider / Courier Sector Accent
+  riderBg: '#081225',        // Rider Sector Background (Deep Navy/Blue)
+  customer: '#10B981',       // Customer Portal Sector Accent
+  customerBg: '#061a14',     // Customer Sector Background (Deep Emerald Tint)
+  merchant: '#F59E0B',       // Merchant / Kitchen Sector Accent
+  merchantBg: '#1c1206',     // Merchant Sector Background (Deep Warm Amber Tint)
+  admin: '#EC4899',          // Admin Sector Accent (Rose/Pink)
+  adminBg: '#190a14',        // Admin Sector Background (Deep Rose/Slate)
+  avatar: '#8B5CF6',         // 3D Human Sign Avatar Sector Accent
+  avatarBg: '#120a22',       // 3D Avatar Lab Sector Background (Deep Royal Purple)
+  landingBg: '#090e1a',      // Landing Page Sector Background (Midnight Slate)
+  authBg: '#0a0d18',         // Auth Login Sector Background
+  accent: '#06B6D4',         // Primary Accent & UI Glow
+  card: '#1E293B',           // Card Panel Surface
+  bg: '#0F172A'              // Canvas Background
 };
 
 export const ACCESSIBILITY_THEMES = [
@@ -461,32 +469,80 @@ export const SECTOR_PALETTE_PRESETS = [
   {
     id: 'cyber',
     name: 'Cyber SignShift (Default)',
-    colors: { rider: '#06B6D4', customer: '#10B981', merchant: '#F59E0B', avatar: '#06B6D4', accent: '#06B6D4', card: '#1E293B', bg: '#0F172A' }
+    colors: {
+      rider: '#0284C7', riderBg: '#081225',
+      customer: '#10B981', customerBg: '#061a14',
+      merchant: '#F59E0B', merchantBg: '#1c1206',
+      admin: '#EC4899', adminBg: '#190a14',
+      avatar: '#8B5CF6', avatarBg: '#120a22',
+      landingBg: '#090e1a', authBg: '#0a0d18',
+      accent: '#06B6D4', card: '#1E293B', bg: '#0F172A'
+    }
   },
   {
     id: 'emerald-eco',
     name: 'Emerald Eco Pulse',
-    colors: { rider: '#10B981', customer: '#06B6D4', merchant: '#84CC16', avatar: '#10B981', accent: '#10B981', card: '#132822', bg: '#091612' }
+    colors: {
+      rider: '#10B981', riderBg: '#071712',
+      customer: '#06B6D4', customerBg: '#08191f',
+      merchant: '#84CC16', merchantBg: '#121a08',
+      admin: '#14B8A6', adminBg: '#081716',
+      avatar: '#10B981', avatarBg: '#081a14',
+      landingBg: '#091612', authBg: '#071410',
+      accent: '#10B981', card: '#132822', bg: '#091612'
+    }
   },
   {
     id: 'sunset-amber',
     name: 'Sunset Horizon',
-    colors: { rider: '#F97316', customer: '#EC4899', merchant: '#FBBF24', avatar: '#F97316', accent: '#F97316', card: '#2B1A24', bg: '#180E16' }
+    colors: {
+      rider: '#F97316', riderBg: '#211009',
+      customer: '#EC4899', customerBg: '#240a17',
+      merchant: '#FBBF24', merchantBg: '#211806',
+      admin: '#E11D48', adminBg: '#220810',
+      avatar: '#F97316', avatarBg: '#211009',
+      landingBg: '#180E16', authBg: '#150c13',
+      accent: '#F97316', card: '#2B1A24', bg: '#180E16'
+    }
   },
   {
     id: 'synthwave',
     name: 'Synthwave Purple',
-    colors: { rider: '#A855F7', customer: '#EC4899', merchant: '#06B6D4', avatar: '#A855F7', accent: '#A855F7', card: '#221435', bg: '#11081C' }
+    colors: {
+      rider: '#A855F7', riderBg: '#150926',
+      customer: '#EC4899', customerBg: '#22081c',
+      merchant: '#06B6D4', merchantBg: '#081926',
+      admin: '#F43F5E', adminBg: '#240814',
+      avatar: '#A855F7', avatarBg: '#150926',
+      landingBg: '#11081C', authBg: '#0e0618',
+      accent: '#A855F7', card: '#221435', bg: '#11081C'
+    }
   },
   {
     id: 'cobalt',
     name: 'Oceanic Cobalt',
-    colors: { rider: '#3B82F6', customer: '#06B6D4', merchant: '#6366F1', avatar: '#3B82F6', accent: '#3B82F6', card: '#14223A', bg: '#0A1224' }
+    colors: {
+      rider: '#3B82F6', riderBg: '#08142b',
+      customer: '#06B6D4', customerBg: '#081926',
+      merchant: '#6366F1', merchantBg: '#0f102e',
+      admin: '#8B5CF6', adminBg: '#140c26',
+      avatar: '#3B82F6', avatarBg: '#08142b',
+      landingBg: '#0A1224', authBg: '#080e1c',
+      accent: '#3B82F6', card: '#14223A', bg: '#0A1224'
+    }
   },
   {
     id: 'monochrome',
     name: 'High-Vis Laser',
-    colors: { rider: '#00FFFF', customer: '#00FF66', merchant: '#FFFF00', avatar: '#00FFFF', accent: '#00FFFF', card: '#090D16', bg: '#000000' }
+    colors: {
+      rider: '#00FFFF', riderBg: '#000000',
+      customer: '#00FF66', customerBg: '#000000',
+      merchant: '#FFFF00', merchantBg: '#000000',
+      admin: '#FF0055', adminBg: '#000000',
+      avatar: '#00FFFF', avatarBg: '#000000',
+      landingBg: '#000000', authBg: '#000000',
+      accent: '#00FFFF', card: '#090D16', bg: '#000000'
+    }
   }
 ];
 
@@ -540,7 +596,10 @@ export const AppProvider = ({ children }) => {
   }, [authRoleTab]);
 
   const [theme, setTheme] = useState(() => loadStorage('signshift_theme', 'dark'));
-  const [sectorColors, setSectorColors] = useState(() => loadStorage('signshift_sector_colors', DEFAULT_SECTOR_COLORS));
+  const [sectorColors, setSectorColors] = useState(() => {
+    const saved = loadStorage('signshift_sector_colors', DEFAULT_SECTOR_COLORS);
+    return { ...DEFAULT_SECTOR_COLORS, ...saved };
+  });
   const [fontSize, setFontSizeState] = useState(() => loadStorage('signshift_font_size', 'normal'));
   const [fontScale, setFontScale] = useState(() => loadStorage('signshift_font_scale', 100));
   const [fontFamily, setFontFamily] = useState(() => loadStorage('signshift_font_family', 'standard'));
@@ -640,19 +699,47 @@ export const AppProvider = ({ children }) => {
     saveStorage('signshift_theme', theme);
   }, [theme]);
 
+  // Derive active sector background based on current view/role
+  const activeSectorKey = useMemo(() => {
+    if (!isAuthenticated) {
+      return currentView === 'landing' ? 'landing' : 'auth';
+    }
+    return user?.role || 'customer';
+  }, [isAuthenticated, currentView, user]);
+
+  const activeSectorBg = useMemo(() => {
+    if (activeSectorKey === 'landing') return sectorColors.landingBg || '#090e1a';
+    if (activeSectorKey === 'auth') return sectorColors.authBg || '#0a0d18';
+    if (activeSectorKey === 'rider') return sectorColors.riderBg || '#081225';
+    if (activeSectorKey === 'customer') return sectorColors.customerBg || '#061a14';
+    if (activeSectorKey === 'merchant') return sectorColors.merchantBg || '#1c1206';
+    if (activeSectorKey === 'admin') return sectorColors.adminBg || '#190a14';
+    if (activeSectorKey === 'avatar') return sectorColors.avatarBg || '#120a22';
+    return sectorColors.bg || '#0F172A';
+  }, [activeSectorKey, sectorColors]);
+
   useEffect(() => {
     saveStorage('signshift_sector_colors', sectorColors);
     if (typeof document !== 'undefined') {
       const root = document.documentElement;
-      root.style.setProperty('--sector-rider', sectorColors.rider || '#06B6D4');
+      root.style.setProperty('--sector-rider', sectorColors.rider || '#0284C7');
+      root.style.setProperty('--sector-rider-bg', sectorColors.riderBg || '#081225');
       root.style.setProperty('--sector-customer', sectorColors.customer || '#10B981');
+      root.style.setProperty('--sector-customer-bg', sectorColors.customerBg || '#061a14');
       root.style.setProperty('--sector-merchant', sectorColors.merchant || '#F59E0B');
-      root.style.setProperty('--sector-avatar', sectorColors.avatar || '#06B6D4');
+      root.style.setProperty('--sector-merchant-bg', sectorColors.merchantBg || '#1c1206');
+      root.style.setProperty('--sector-admin', sectorColors.admin || '#EC4899');
+      root.style.setProperty('--sector-admin-bg', sectorColors.adminBg || '#190a14');
+      root.style.setProperty('--sector-avatar', sectorColors.avatar || '#8B5CF6');
+      root.style.setProperty('--sector-avatar-bg', sectorColors.avatarBg || '#120a22');
+      root.style.setProperty('--sector-landing-bg', sectorColors.landingBg || '#090e1a');
+      root.style.setProperty('--sector-auth-bg', sectorColors.authBg || '#0a0d18');
       root.style.setProperty('--sector-accent', sectorColors.accent || '#06B6D4');
       root.style.setProperty('--sector-card', sectorColors.card || '#1E293B');
       root.style.setProperty('--sector-bg', sectorColors.bg || '#0F172A');
+      root.style.setProperty('--active-sector-bg', activeSectorBg);
     }
-  }, [sectorColors]);
+  }, [sectorColors, activeSectorBg]);
 
   // Persistent Databases
   const [usersList, setUsersList] = useState(() => loadStorage('signshift_users', DEFAULT_USERS));
@@ -1829,6 +1916,8 @@ export const AppProvider = ({ children }) => {
       setTheme,
       sectorColors,
       setSectorColors,
+      activeSectorKey,
+      activeSectorBg,
       updateSectorColor,
       applySectorPreset,
       resetSectorColors,

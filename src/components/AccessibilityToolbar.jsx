@@ -29,7 +29,8 @@ import {
   ZoomOut,
   AlignLeft,
   BookOpen,
-  Globe
+  Globe,
+  Lock
 } from 'lucide-react';
 
 export const AccessibilityToolbar = ({ isOpen, onClose }) => {
@@ -37,6 +38,8 @@ export const AccessibilityToolbar = ({ isOpen, onClose }) => {
     theme,
     setTheme,
     sectorColors = {},
+    activeSectorKey,
+    activeSectorBg,
     updateSectorColor,
     applySectorPreset,
     resetSectorColors,
@@ -75,83 +78,148 @@ export const AccessibilityToolbar = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  // Curated quick-pick swatches for sectors
+  // Utility to determine solid contrasting text color (dark or light)
+  const getContrastColor = (hex) => {
+    if (!hex || typeof hex !== 'string') return '#ffffff';
+    let cleanHex = hex.replace('#', '').trim();
+    if (cleanHex.length === 8) {
+      cleanHex = cleanHex.substring(0, 6);
+    }
+    if (cleanHex.length !== 6 && cleanHex.length !== 3) return '#ffffff';
+    const fullHex = cleanHex.length === 3
+      ? cleanHex.split('').map((c) => c + c).join('')
+      : cleanHex;
+    const r = parseInt(fullHex.substring(0, 2), 16);
+    const g = parseInt(fullHex.substring(2, 4), 16);
+    const b = parseInt(fullHex.substring(4, 6), 16);
+    const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+    return yiq >= 128 ? '#020617' : '#ffffff';
+  };
+
+  // Curated quick-pick solid swatches for sector accents
   const QUICK_SWATCHES = [
-    '#06B6D4', // Cyan
-    '#10B981', // Emerald
-    '#F59E0B', // Amber
-    '#A855F7', // Purple
-    '#3B82F6', // Blue
-    '#EC4899', // Pink
-    '#F43F5E', // Rose
-    '#84CC16', // Lime
-    '#F97316', // Orange
-    '#E2E8F0', // Platinum
-    '#00FFFF', // Neon Aqua
-    '#00FF66'  // Neon Green
+    '#2563EB', // Solid Royal Blue
+    '#0284C7', // Solid Sky Blue
+    '#06B6D4', // Solid Cyan
+    '#10B981', // Solid Emerald Green
+    '#16A34A', // Solid Green
+    '#84CC16', // Solid Lime
+    '#F59E0B', // Solid Amber
+    '#EA580C', // Solid Orange
+    '#DC2626', // Solid Red
+    '#EC4899', // Solid Pink
+    '#8B5CF6', // Solid Purple
+    '#64748B'  // Solid Slate
   ];
 
-  // Sector Definitions for Sector Color Studio
+  // Curated deep background tones for sector canvases
+  const QUICK_BG_SWATCHES = [
+    '#081225', // Deep Ocean / Rider Blue
+    '#061a14', // Deep Pine / Customer Green
+    '#1c1206', // Deep Warm Amber / Merchant
+    '#190a14', // Deep Burgundy / Admin
+    '#120a22', // Deep Royal Violet / Avatar
+    '#090e1a', // Midnight Navy / Landing
+    '#0a0d18', // Deep Charcoal / Auth
+    '#000000', // Pitch OLED Black
+    '#0F172A', // Slate 900 Canvas
+    '#1E293B', // Slate 800 Surface
+    '#140E08', // Warm Circadian
+    '#0A0F1D'  // Cobalt Night
+  ];
+
+  // Sector Definitions for Sector Color Studio (Accents + Backgrounds)
   const SECTORS_LIST = [
     {
-      key: 'rider',
+      id: 'rider',
       label: 'Rider / Courier Sector',
-      description: 'Courier dispatch cards, route tracking, speedometer & order badges',
+      description: 'Courier route cards, live telemetry HUD & active order badges',
       icon: Bike,
-      defaultColor: '#06B6D4'
+      accentKey: 'rider',
+      defaultAccent: '#0284C7',
+      bgKey: 'riderBg',
+      defaultBg: '#081225'
     },
     {
-      key: 'customer',
+      id: 'customer',
       label: 'Customer Portal Sector',
-      description: 'Delivery tracking milestones, restaurant cart, item notes & door cues',
+      description: 'Milestones tracking, address selector, favorites & restaurant cart',
       icon: Package,
-      defaultColor: '#10B981'
+      accentKey: 'customer',
+      defaultAccent: '#10B981',
+      bgKey: 'customerBg',
+      defaultBg: '#061a14'
     },
     {
-      key: 'merchant',
+      id: 'merchant',
       label: 'Merchant / Kitchen Sector',
-      description: 'Kitchen prep tickets, incoming orders, menu items & restaurant cards',
+      description: 'Kitchen tickets, food prep pipeline & incoming order cards',
       icon: Store,
-      defaultColor: '#F59E0B'
+      accentKey: 'merchant',
+      defaultAccent: '#F59E0B',
+      bgKey: 'merchantBg',
+      defaultBg: '#1c1206'
     },
     {
-      key: 'avatar',
+      id: 'admin',
+      label: 'Admin Operations Sector',
+      description: 'System telemetry, fleet health overview, audit logs & dispute triage',
+      icon: ShieldCheck,
+      accentKey: 'admin',
+      defaultAccent: '#EC4899',
+      bgKey: 'adminBg',
+      defaultBg: '#190a14'
+    },
+    {
+      id: 'avatar',
       label: '3D Human Sign Avatar Sector',
-      description: "Alex's jacket piping, chest crest, hologram stage ring & rim studio light",
+      description: "Alex's sign suit piping, hologram stage glow & 3D canvas backdrop",
       icon: Bot,
-      defaultColor: '#06B6D4'
+      accentKey: 'avatar',
+      defaultAccent: '#8B5CF6',
+      bgKey: 'avatarBg',
+      defaultBg: '#120a22'
     },
     {
-      key: 'accent',
-      label: 'Global Accent & UI Glow',
-      description: 'Primary action buttons, active navigation indicators & glowing borders',
+      id: 'landing',
+      label: 'Landing Page Sector',
+      description: 'Public marketing hero section, feature spotlights & registration portal',
       icon: Sparkles,
-      defaultColor: '#06B6D4'
+      accentKey: 'accent',
+      defaultAccent: '#06B6D4',
+      bgKey: 'landingBg',
+      defaultBg: '#090e1a'
     },
     {
-      key: 'card',
-      label: 'Card Surfaces & Panels',
-      description: 'Glassmorphic card panels, dialog headers & elevated surface tint',
-      icon: Layers,
-      defaultColor: '#1E293B'
+      id: 'auth',
+      label: 'Auth & Login Sector',
+      description: 'Role-based credentials portal, secure OTP & multi-role gate cards',
+      icon: Lock,
+      accentKey: 'accent',
+      defaultAccent: '#06B6D4',
+      bgKey: 'authBg',
+      defaultBg: '#0a0d18'
     },
     {
-      key: 'bg',
-      label: 'Canvas Background Sector',
-      description: 'Main application background depth & viewport canvas tone',
+      id: 'canvas',
+      label: 'Global Canvas & Card Surface',
+      description: 'Universal fallback background depth & elevated surface card panels',
       icon: Moon,
-      defaultColor: '#0F172A'
+      accentKey: 'card',
+      defaultAccent: '#1E293B',
+      bgKey: 'bg',
+      defaultBg: '#0F172A'
     }
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-fadeIn">
-      <div className="relative w-full max-w-2xl bg-slate-900 border-2 border-cyan-500/60 rounded-3xl p-5 sm:p-7 shadow-2xl overflow-hidden max-h-[92vh] flex flex-col text-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950 animate-fadeIn">
+      <div className="relative w-full max-w-2xl bg-slate-900 border-2 border-cyan-500 rounded-3xl p-5 sm:p-7 shadow-2xl overflow-hidden max-h-[92vh] flex flex-col text-slate-100">
 
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-cyan-500/20 text-cyan-400 rounded-2xl border border-cyan-500/30 shadow-md">
+            <div className="p-3 bg-cyan-950 text-cyan-400 rounded-2xl border border-cyan-500 shadow-md">
               <Sliders className="w-6 h-6" />
             </div>
             <div>
@@ -175,7 +243,7 @@ export const AccessibilityToolbar = ({ isOpen, onClose }) => {
           <button
             onClick={() => setActiveTab('display')}
             className={`px-3.5 py-2 rounded-xl transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'display'
-              ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-md font-extrabold'
+              ? 'bg-emerald-500 text-slate-950 shadow-md font-extrabold'
               : 'text-slate-400 hover:text-white hover:bg-slate-900'
               }`}
           >
@@ -186,7 +254,7 @@ export const AccessibilityToolbar = ({ isOpen, onClose }) => {
           <button
             onClick={() => setActiveTab('themes')}
             className={`px-3.5 py-2 rounded-xl transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'themes'
-              ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-slate-950 shadow-md font-extrabold'
+              ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
               : 'text-slate-400 hover:text-white hover:bg-slate-900'
               }`}
           >
@@ -197,7 +265,7 @@ export const AccessibilityToolbar = ({ isOpen, onClose }) => {
           <button
             onClick={() => setActiveTab('sectors')}
             className={`px-3.5 py-2 rounded-xl transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'sectors'
-              ? 'bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 shadow-md font-extrabold'
+              ? 'bg-teal-500 text-slate-950 shadow-md font-extrabold'
               : 'text-slate-400 hover:text-white hover:bg-slate-900'
               }`}
           >
@@ -208,7 +276,7 @@ export const AccessibilityToolbar = ({ isOpen, onClose }) => {
           <button
             onClick={() => setActiveTab('alerts')}
             className={`px-3.5 py-2 rounded-xl transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'alerts'
-              ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-slate-950 shadow-md font-extrabold'
+              ? 'bg-purple-500 text-slate-950 shadow-md font-extrabold'
               : 'text-slate-400 hover:text-white hover:bg-slate-900'
               }`}
           >
@@ -219,7 +287,7 @@ export const AccessibilityToolbar = ({ isOpen, onClose }) => {
           <button
             onClick={() => setActiveTab('language')}
             className={`px-3.5 py-2 rounded-xl transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'language'
-              ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-md font-extrabold'
+              ? 'bg-amber-500 text-slate-950 shadow-md font-extrabold'
               : 'text-slate-400 hover:text-white hover:bg-slate-900'
               }`}
           >
@@ -243,7 +311,7 @@ export const AccessibilityToolbar = ({ isOpen, onClose }) => {
                     <span className="text-sm font-bold text-white">Continuous Font Scaling</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-1 bg-emerald-950 text-emerald-300 border border-emerald-800/80 rounded-lg text-xs font-mono font-extrabold shadow-sm">
+                    <span className="px-2.5 py-1 bg-emerald-950 text-emerald-300 border border-emerald-800 rounded-lg text-xs font-mono font-extrabold shadow-sm">
                       {fontScale}% Scale
                     </span>
                     <button
@@ -308,7 +376,7 @@ export const AccessibilityToolbar = ({ isOpen, onClose }) => {
                         key={f.id}
                         onClick={() => setFontSize(f.id)}
                         className={`p-3.5 rounded-2xl border text-left transition flex flex-col justify-between group ${isSelected
-                          ? 'border-emerald-400 bg-emerald-950/40 text-emerald-300 font-bold shadow-lg ring-2 ring-emerald-500/30'
+                          ? 'border-emerald-400 bg-emerald-950 text-emerald-300 font-bold shadow-lg ring-2 ring-emerald-500'
                           : 'border-slate-800 bg-slate-950 hover:border-slate-700 text-slate-300'
                           }`}
                       >
@@ -351,7 +419,7 @@ export const AccessibilityToolbar = ({ isOpen, onClose }) => {
                         key={font.id}
                         onClick={() => setFontFamily(font.id)}
                         className={`p-2.5 rounded-xl border text-left transition ${fontFamily === font.id
-                          ? 'border-cyan-400 bg-cyan-950/40 text-cyan-200 font-bold'
+                          ? 'border-cyan-400 bg-cyan-950 text-cyan-200 font-bold'
                           : 'border-slate-800 bg-slate-900 hover:border-slate-700 text-slate-400'
                           }`}
                       >
@@ -398,7 +466,7 @@ export const AccessibilityToolbar = ({ isOpen, onClose }) => {
                   <Sparkles className="w-3.5 h-3.5 text-cyan-400" /> Live Typography Preview ({fontScale}% Scale)
                 </span>
 
-                <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2 shadow-inner">
+                <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2 shadow-inner">
                   <h3 className="font-extrabold text-white">
                     Order #SF-8924: Rider Has Arrived
                   </h3>
@@ -406,10 +474,10 @@ export const AccessibilityToolbar = ({ isOpen, onClose }) => {
                     Alex is waiting outside unit 4B with your warm thermal food parcel. Gate code 4022 confirmed.
                   </p>
                   <div className="flex flex-wrap items-center gap-2 pt-1">
-                    <span className="px-2.5 py-1 bg-cyan-950/80 text-cyan-300 border border-cyan-800 rounded-lg font-bold text-xs">
+                    <span className="px-2.5 py-1 bg-cyan-950 text-cyan-300 border border-cyan-800 rounded-lg font-bold text-xs">
                       ASL Gesture: HELLO
                     </span>
-                    <button className="px-3 py-1.5 bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 font-bold rounded-lg text-xs">
+                    <button className="px-3 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-lg text-xs transition">
                       Confirm Delivery
                     </button>
                   </div>
@@ -455,8 +523,8 @@ export const AccessibilityToolbar = ({ isOpen, onClose }) => {
                       key={t.id}
                       onClick={() => setTheme(t.id)}
                       className={`p-4 rounded-2xl border text-left transition flex flex-col justify-between group ${isSelected
-                        ? 'border-cyan-400 bg-cyan-950/40 text-cyan-100 ring-2 ring-cyan-500/40 shadow-xl'
-                        : 'border-slate-800 bg-slate-950/80 hover:border-slate-700 hover:bg-slate-950 text-slate-300'
+                        ? 'border-cyan-400 bg-cyan-950 text-cyan-100 ring-2 ring-cyan-500 shadow-xl'
+                        : 'border-slate-800 bg-slate-950 hover:border-slate-700 hover:bg-slate-900 text-slate-300'
                         }`}
                     >
                       <div className="flex items-start justify-between mb-2">
@@ -481,7 +549,7 @@ export const AccessibilityToolbar = ({ isOpen, onClose }) => {
                       </div>
 
                       {/* Visual Palette Preview Strip */}
-                      <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-800/80">
+                      <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-800">
                         <span className="text-[10px] text-slate-500 font-mono">Palette:</span>
                         <div className="flex items-center gap-1">
                           {t.id === 'neon' && (
@@ -571,15 +639,17 @@ export const AccessibilityToolbar = ({ isOpen, onClose }) => {
                     <button
                       key={preset.id}
                       onClick={() => applySectorPreset(preset.id)}
-                      className="p-2.5 rounded-xl border border-slate-800 bg-slate-950 hover:border-cyan-500/50 text-left transition flex items-center justify-between group"
+                      className="p-2.5 rounded-xl border border-slate-800 bg-slate-950 hover:border-cyan-500 text-left transition flex items-center justify-between group"
                     >
                       <div>
                         <p className="text-xs font-bold text-white group-hover:text-cyan-300">{preset.name}</p>
                         <div className="flex items-center gap-1 mt-1.5">
-                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: preset.colors.rider }} />
-                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: preset.colors.customer }} />
-                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: preset.colors.merchant }} />
-                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: preset.colors.avatar }} />
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: preset.colors.rider }} title="Rider Accent" />
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: preset.colors.customer }} title="Customer Accent" />
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: preset.colors.merchant }} title="Merchant Accent" />
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: preset.colors.admin || '#EC4899' }} title="Admin Accent" />
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: preset.colors.avatar }} title="Avatar Accent" />
+                          <span className="w-2.5 h-2.5 rounded border border-slate-600" style={{ backgroundColor: preset.colors.bg || '#0F172A' }} title="Background" />
                         </div>
                       </div>
                     </button>
@@ -587,122 +657,203 @@ export const AccessibilityToolbar = ({ isOpen, onClose }) => {
                 </div>
               </div>
 
-              {/* Live Sector Preview Bar */}
-              <div className="p-3.5 bg-slate-950 rounded-2xl border border-slate-800">
-                <span className="text-[11px] font-extrabold uppercase text-slate-400 tracking-wider block mb-2">
-                  Live Sector Harmony Preview
-                </span>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span
-                    className="px-2.5 py-1 rounded-lg text-xs font-bold border flex items-center gap-1.5"
-                    style={{
-                      backgroundColor: `${sectorColors.rider || '#06B6D4'}20`,
-                      borderColor: `${sectorColors.rider || '#06B6D4'}60`,
-                      color: sectorColors.rider || '#06B6D4'
-                    }}
-                  >
-                    <Bike className="w-3.5 h-3.5" /> Rider Sector
+              {/* Live Sector Harmony & Backgrounds Preview Bar */}
+              <div className="p-3.5 bg-slate-950 rounded-2xl border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-extrabold uppercase text-slate-400 tracking-wider block">
+                    Live Sector Harmony & Backgrounds
                   </span>
+                  {activeSectorKey && (
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold">
+                      Current Sector: {activeSectorKey.toUpperCase()}
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {SECTORS_LIST.map((sec) => {
+                    const secAccent = sectorColors[sec.accentKey] || sec.defaultAccent;
+                    const secBg = sectorColors[sec.bgKey] || sec.defaultBg;
+                    const Icon = sec.icon;
+                    const isActive = activeSectorKey === sec.id;
 
-                  <span
-                    className="px-2.5 py-1 rounded-lg text-xs font-bold border flex items-center gap-1.5"
-                    style={{
-                      backgroundColor: `${sectorColors.customer || '#10B981'}20`,
-                      borderColor: `${sectorColors.customer || '#10B981'}60`,
-                      color: sectorColors.customer || '#10B981'
-                    }}
-                  >
-                    <Package className="w-3.5 h-3.5" /> Customer Sector
-                  </span>
-
-                  <span
-                    className="px-2.5 py-1 rounded-lg text-xs font-bold border flex items-center gap-1.5"
-                    style={{
-                      backgroundColor: `${sectorColors.merchant || '#F59E0B'}20`,
-                      borderColor: `${sectorColors.merchant || '#F59E0B'}60`,
-                      color: sectorColors.merchant || '#F59E0B'
-                    }}
-                  >
-                    <Store className="w-3.5 h-3.5" /> Merchant Sector
-                  </span>
-
-                  <span
-                    className="px-2.5 py-1 rounded-lg text-xs font-bold border flex items-center gap-1.5"
-                    style={{
-                      backgroundColor: `${sectorColors.avatar || '#06B6D4'}20`,
-                      borderColor: `${sectorColors.avatar || '#06B6D4'}60`,
-                      color: sectorColors.avatar || '#06B6D4'
-                    }}
-                  >
-                    <Bot className="w-3.5 h-3.5" /> 3D Avatar Suit
-                  </span>
+                    return (
+                      <div
+                        key={sec.id}
+                        className={`p-2.5 rounded-xl border transition-all flex flex-col justify-between ${
+                          isActive ? 'ring-2 ring-cyan-400 shadow-lg' : ''
+                        }`}
+                        style={{
+                          backgroundColor: secBg,
+                          borderColor: secAccent
+                        }}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span
+                            className="w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs shadow"
+                            style={{
+                              backgroundColor: secAccent,
+                              color: getContrastColor(secAccent)
+                            }}
+                          >
+                            <Icon className="w-3.5 h-3.5" />
+                          </span>
+                          {isActive && (
+                            <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-cyan-400 text-slate-950">
+                              ACTIVE
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs font-bold text-white truncate block">{sec.label.split(' /')[0]}</span>
+                        <div className="flex items-center justify-between text-[10px] font-mono text-slate-300 mt-1 pt-1 border-t border-white/10">
+                          <span className="truncate">BG: {secBg}</span>
+                          <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: secAccent }} />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Individual Sector Color Selectors */}
+              {/* Individual Sector Color Selectors (Accent & Background for Every Sector) */}
               <div className="space-y-3">
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  Customize the Color of Every Sector
+                  Customize the Accent & Background Color of Every Sector
                 </h4>
 
                 {SECTORS_LIST.map((sector) => {
                   const Icon = sector.icon;
-                  const currentColor = sectorColors[sector.key] || sector.defaultColor;
+                  const currentAccent = sectorColors[sector.accentKey] || sector.defaultAccent;
+                  const currentBg = sectorColors[sector.bgKey] || sector.defaultBg;
+                  const isActive = activeSectorKey === sector.id;
 
                   return (
                     <div
-                      key={sector.key}
-                      className="p-3.5 bg-slate-950/90 rounded-2xl border border-slate-800 hover:border-slate-700 transition"
+                      key={sector.id}
+                      className={`p-3.5 rounded-2xl border transition ${
+                        isActive ? 'border-cyan-500/80 shadow-lg' : 'border-slate-800 hover:border-slate-700'
+                      }`}
+                      style={{ backgroundColor: `${currentBg}cc` }}
                     >
-                      <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                      {/* Sector Header */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                         <div className="flex items-center gap-2.5">
                           <div
-                            className="w-8 h-8 rounded-xl flex items-center justify-center shadow-md"
+                            className="w-8 h-8 rounded-xl flex items-center justify-center shadow-md font-bold"
                             style={{
-                              backgroundColor: `${currentColor}25`,
-                              color: currentColor,
-                              border: `1px solid ${currentColor}60`
+                              backgroundColor: currentAccent,
+                              color: getContrastColor(currentAccent),
+                              border: `1px solid ${currentAccent}`
                             }}
                           >
                             <Icon className="w-4 h-4" />
                           </div>
                           <div>
-                            <span className="font-bold text-sm text-white block">{sector.label}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-sm text-white block">{sector.label}</span>
+                              {isActive && (
+                                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-400 text-slate-950">
+                                  Viewing Now
+                                </span>
+                              )}
+                            </div>
                             <span className="text-[11px] text-slate-400 block">{sector.description}</span>
                           </div>
                         </div>
 
-                        {/* Native Color Picker & Hex Display */}
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-mono font-bold px-2 py-1 bg-slate-900 border border-slate-800 rounded-lg text-slate-300">
-                            {currentColor}
-                          </span>
-                          <label className="relative cursor-pointer w-7 h-7 rounded-lg overflow-hidden border border-slate-700 shadow flex items-center justify-center">
-                            <input
-                              type="color"
-                              value={currentColor}
-                              onChange={(e) => updateSectorColor(sector.key, e.target.value)}
-                              className="absolute -top-4 -left-4 w-16 h-16 cursor-pointer opacity-0"
-                            />
-                            <span className="w-full h-full block" style={{ backgroundColor: currentColor }} />
-                          </label>
+                        {/* Live Combined Mini Badge Preview */}
+                        <div
+                          className="px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-2 shadow-inner"
+                          style={{
+                            backgroundColor: currentBg,
+                            borderColor: currentAccent,
+                            color: getContrastColor(currentBg)
+                          }}
+                        >
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: currentAccent }} />
+                          <span>Sector Preview</span>
                         </div>
                       </div>
 
-                      {/* Quick Swatch Bar */}
-                      <div className="flex items-center gap-1.5 overflow-x-auto pt-1 scrollbar-none">
-                        {QUICK_SWATCHES.map((swatch) => (
-                          <button
-                            key={swatch}
-                            onClick={() => updateSectorColor(sector.key, swatch)}
-                            className={`w-5 h-5 rounded-md flex-shrink-0 transition-transform ${currentColor.toLowerCase() === swatch.toLowerCase()
-                              ? 'scale-125 ring-2 ring-white shadow-lg'
-                              : 'opacity-80 hover:opacity-100 hover:scale-110'
-                              }`}
-                            style={{ backgroundColor: swatch }}
-                            title={`Set to ${swatch}`}
-                          />
-                        ))}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-white/10">
+                        {/* 1. SECTOR BACKGROUND COLOR */}
+                        <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                              <Moon className="w-3.5 h-3.5 text-cyan-400" /> Sector Background
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[11px] font-mono font-bold px-2 py-0.5 bg-slate-900 border border-slate-800 rounded text-slate-300">
+                                {currentBg}
+                              </span>
+                              <label className="relative cursor-pointer w-6 h-6 rounded-md overflow-hidden border border-slate-700 shadow flex items-center justify-center">
+                                <input
+                                  type="color"
+                                  value={currentBg}
+                                  onChange={(e) => updateSectorColor(sector.bgKey, e.target.value)}
+                                  className="absolute -top-4 -left-4 w-16 h-16 cursor-pointer opacity-0"
+                                />
+                                <span className="w-full h-full block" style={{ backgroundColor: currentBg }} />
+                              </label>
+                            </div>
+                          </div>
+
+                          {/* Quick Deep BG Swatches */}
+                          <div className="flex items-center gap-1 overflow-x-auto pt-0.5 scrollbar-none">
+                            {QUICK_BG_SWATCHES.map((bgSwatch) => (
+                              <button
+                                key={bgSwatch}
+                                onClick={() => updateSectorColor(sector.bgKey, bgSwatch)}
+                                className={`w-5 h-5 rounded-md flex-shrink-0 transition-transform ${
+                                  currentBg.toLowerCase() === bgSwatch.toLowerCase()
+                                    ? 'scale-125 ring-2 ring-white shadow-md'
+                                    : 'hover:scale-110 border border-white/20'
+                                }`}
+                                style={{ backgroundColor: bgSwatch }}
+                                title={`Set BG to ${bgSwatch}`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* 2. SECTOR ACCENT COLOR */}
+                        <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                              <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Sector Accent & Badges
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[11px] font-mono font-bold px-2 py-0.5 bg-slate-900 border border-slate-800 rounded text-slate-300">
+                                {currentAccent}
+                              </span>
+                              <label className="relative cursor-pointer w-6 h-6 rounded-md overflow-hidden border border-slate-700 shadow flex items-center justify-center">
+                                <input
+                                  type="color"
+                                  value={currentAccent}
+                                  onChange={(e) => updateSectorColor(sector.accentKey, e.target.value)}
+                                  className="absolute -top-4 -left-4 w-16 h-16 cursor-pointer opacity-0"
+                                />
+                                <span className="w-full h-full block" style={{ backgroundColor: currentAccent }} />
+                              </label>
+                            </div>
+                          </div>
+
+                          {/* Quick Accent Swatches */}
+                          <div className="flex items-center gap-1 overflow-x-auto pt-0.5 scrollbar-none">
+                            {QUICK_SWATCHES.map((swatch) => (
+                              <button
+                                key={swatch}
+                                onClick={() => updateSectorColor(sector.accentKey, swatch)}
+                                className={`w-5 h-5 rounded-md flex-shrink-0 transition-transform ${
+                                  currentAccent.toLowerCase() === swatch.toLowerCase()
+                                    ? 'scale-125 ring-2 ring-white shadow-md'
+                                    : 'hover:scale-110 shadow-sm'
+                                }`}
+                                style={{ backgroundColor: swatch }}
+                                title={`Set Accent to ${swatch}`}
+                              />
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   );
@@ -817,8 +968,8 @@ export const AccessibilityToolbar = ({ isOpen, onClose }) => {
                         triggerVisualAlert('cyan');
                       }}
                       className={`p-4 rounded-2xl border text-left transition flex flex-col justify-between group ${isSelected
-                        ? 'border-amber-400 bg-amber-950/40 text-amber-100 ring-2 ring-amber-500/40 shadow-xl'
-                        : 'border-slate-800 bg-slate-950/80 hover:border-slate-700 hover:bg-slate-950 text-slate-300'
+                        ? 'border-amber-400 bg-amber-950 text-amber-100 ring-2 ring-amber-500 shadow-xl'
+                        : 'border-slate-800 bg-slate-950 hover:border-slate-700 hover:bg-slate-900 text-slate-300'
                         }`}
                     >
                       <div className="flex items-start justify-between mb-2">
@@ -835,7 +986,7 @@ export const AccessibilityToolbar = ({ isOpen, onClose }) => {
                           </div>
                         )}
                       </div>
-                      <div className="mt-2 pt-2 border-t border-slate-800/80">
+                      <div className="mt-2 pt-2 border-t border-slate-800">
                         <span className="text-[10px] text-slate-500 font-mono block">Sample Translation:</span>
                         <p className="text-xs text-slate-300 italic mt-0.5">{lang.sampleMsg}</p>
                       </div>
@@ -867,7 +1018,7 @@ export const AccessibilityToolbar = ({ isOpen, onClose }) => {
 
           <button
             onClick={onClose}
-            className="px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 font-bold rounded-xl shadow-lg hover:brightness-110 transition flex items-center gap-1.5"
+            className="px-6 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-xl shadow-lg transition flex items-center gap-1.5"
           >
             <CheckCircle2 className="w-4 h-4" /> Save & Apply
           </button>

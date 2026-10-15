@@ -13,20 +13,30 @@
     --accent-yellow: #F59E0B;
 
     /* Dynamic Sector Color Tokens */
-    --sector-rider: #06B6D4;
+    --sector-rider: #0284C7;
+    --sector-rider-bg: #081225;
     --sector-customer: #10B981;
+    --sector-customer-bg: #061a14;
     --sector-merchant: #F59E0B;
-    --sector-avatar: #06B6D4;
+    --sector-merchant-bg: #1c1206;
+    --sector-admin: #EC4899;
+    --sector-admin-bg: #190a14;
+    --sector-avatar: #8B5CF6;
+    --sector-avatar-bg: #120a22;
+    --sector-landing-bg: #090e1a;
+    --sector-auth-bg: #0a0d18;
     --sector-accent: #06B6D4;
     --sector-card: #1E293B;
     --sector-bg: #0F172A;
+    --active-sector-bg: #0F172A;
   }
 
   body {
-    background-color: var(--sector-bg, var(--bg-main));
+    background-color: var(--active-sector-bg, var(--sector-bg, var(--bg-main)));
     color: var(--text-primary);
     font-family: 'Inter', 'Lexend', system-ui, -apple-system, sans-serif;
     overflow-x: hidden;
+    transition: background-color 0.4s ease;
   }
 
   /* 1. High Contrast Neon Mode (WCAG 2.1 AAA Outdoor Sunlight) */
@@ -294,27 +304,27 @@
 
 /* Dynamic Sector Accent Helpers */
 .badge-rider {
-  background-color: color-mix(in srgb, var(--sector-rider) 20%, transparent);
-  color: var(--sector-rider);
-  border-color: color-mix(in srgb, var(--sector-rider) 40%, transparent);
+  background-color: var(--sector-rider);
+  color: #020617;
+  border-color: var(--sector-rider);
 }
 
 .badge-customer {
-  background-color: color-mix(in srgb, var(--sector-customer) 20%, transparent);
-  color: var(--sector-customer);
-  border-color: color-mix(in srgb, var(--sector-customer) 40%, transparent);
+  background-color: var(--sector-customer);
+  color: #020617;
+  border-color: var(--sector-customer);
 }
 
 .badge-merchant {
-  background-color: color-mix(in srgb, var(--sector-merchant) 20%, transparent);
-  color: var(--sector-merchant);
-  border-color: color-mix(in srgb, var(--sector-merchant) 40%, transparent);
+  background-color: var(--sector-merchant);
+  color: #020617;
+  border-color: var(--sector-merchant);
 }
 
 .badge-avatar {
-  background-color: color-mix(in srgb, var(--sector-avatar) 20%, transparent);
-  color: var(--sector-avatar);
-  border-color: color-mix(in srgb, var(--sector-avatar) 40%, transparent);
+  background-color: var(--sector-avatar);
+  color: #020617;
+  border-color: var(--sector-avatar);
 }
 
 /* Custom scrollbars */

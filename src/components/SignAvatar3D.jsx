@@ -118,10 +118,12 @@ export const SignAvatar3D = ({ activeSignKey, activePhraseKey, height = "400px" 
 
       // 1. Scene Setup
       const scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x070b14);
+      const bgHex = sectorColors?.avatarBg ? parseInt(sectorColors.avatarBg.replace('#', ''), 16) : 0x070b14;
+      const validBgColor = isNaN(bgHex) ? 0x070b14 : bgHex;
+      scene.background = new THREE.Color(validBgColor);
 
       // Subtle fog for depth
-      scene.fog = new THREE.FogExp2(0x070b14, 0.08);
+      scene.fog = new THREE.FogExp2(validBgColor, 0.08);
 
       // 2. Camera Setup (framed to capture Alex's full human anatomy from shoes to hair)
       const camera = new THREE.PerspectiveCamera(42, width / h, 0.1, 100);
